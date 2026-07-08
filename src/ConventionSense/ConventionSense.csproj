@@ -17,12 +17,37 @@
     <RootNamespace>ConventionSense.Tool</RootNamespace>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>conventionsense</ToolCommandName>
+    <!-- PackAsTool stamps the DotnetTool package type; this adds McpServer alongside it so the
+         package also surfaces under nuget.org's "MCP Server" package-type filter. -->
+    <PackageType>McpServer</PackageType>
     <PackageId>ConventionSense</PackageId>
     <!-- Fixed high dev version so a local "dotnet tool update" (add-source nupkg)
-         always treats a fresh pack as the newest; override for real releases
-         with: dotnet pack -p:Version=1.2.3 -->
+         always treats a fresh pack as the newest; real releases are tag-driven:
+         the release workflow packs with -p:Version=<tag>. -->
     <Version>9.9.9-dev</Version>
     <Description>Git-history-based hole detector: flags files that are expected to change together with your edit but are absent. MCP server + pre-commit CLI.</Description>
+    <PackageTags>mcp;model-context-protocol;git;change-coupling;code-review;pre-commit;roslyn;ai;agents</PackageTags>
+    <Authors>Byggarepop</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/Byggarepop/ConventionSense</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Byggarepop/ConventionSense</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReleaseNotes>https://github.com/Byggarepop/ConventionSense/blob/main/CHANGELOG.md</PackageReleaseNotes>
+    <!-- The repo's root README is the single source of truth: it is the GitHub landing page AND
+         the nuget.org package README (keep doc links absolute so they resolve there). It also
+         carries the Official MCP Registry verification marker, an HTML comment
+         "mcp-name: io.github.Byggarepop/conventionsense" at the top — the registry reads it out of
+         the packed .nupkg to prove ownership of the server name, so it MUST stay in sync with the
+         "name" in .mcp/server.json (case-sensitive; must match the GitHub login casing). -->
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Ship the root README as the package README shown on nuget.org — same file as GitHub. -->
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <!-- Embedded registry manifest: nuget.org reads it to render the "MCP Server" tab and the
+         one-click VS Code config. Same file is published to the Official MCP Registry on release. -->
+    <None Include="..\..\.mcp\server.json" Pack="true" PackagePath=".mcp/server.json" />
+  </ItemGroup>
 
 </Project>

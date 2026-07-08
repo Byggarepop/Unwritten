@@ -1,3 +1,5 @@
+<!-- mcp-name: io.github.Byggarepop/conventionsense -->
+
 # ConventionSense
 
 **The free, agent-native slice of change coupling.** ConventionSense learns from your git

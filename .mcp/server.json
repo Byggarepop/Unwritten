@@ -1,0 +1,23 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Byggarepop/conventionsense",
+  "description": "Git-history-based hole detector: flags files and C# members that historically co-change with your edit but are absent, with commit evidence.",
+  "title": "ConventionSense",
+  "version": "0.1.0",
+  "websiteUrl": "https://github.com/Byggarepop/ConventionSense",
+  "repository": {
+    "url": "https://github.com/Byggarepop/ConventionSense",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "nuget",
+      "registryBaseUrl": "https://api.nuget.org/v3/index.json",
+      "identifier": "ConventionSense",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
