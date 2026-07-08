@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\ConventionSense.Core\ConventionSense.Core.csproj" />
+    <ProjectReference Include="..\ConventionSense.Git\ConventionSense.Git.csproj" />
+    <ProjectReference Include="..\ConventionSense.Storage\ConventionSense.Storage.csproj" />
+    <ProjectReference Include="..\ConventionSense.Roslyn\ConventionSense.Roslyn.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
+    <PackageReference Include="ModelContextProtocol" Version="2.0.0-preview.1" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>ConventionSense.Tool</RootNamespace>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>conventionsense</ToolCommandName>
+    <PackageId>ConventionSense</PackageId>
+    <!-- Fixed high dev version so a local "dotnet tool update" (add-source nupkg)
+         always treats a fresh pack as the newest; override for real releases
+         with: dotnet pack -p:Version=1.2.3 -->
+    <Version>9.9.9-dev</Version>
+    <Description>Git-history-based hole detector: flags files that are expected to change together with your edit but are absent. MCP server + pre-commit CLI.</Description>
+  </PropertyGroup>
+
+</Project>
