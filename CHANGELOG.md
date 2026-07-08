@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-07-08
+
+### Fixed
+
+- MCP Registry listing: `server.json` description shortened to the registry's
+  100-character limit (the v0.1.0 registry publish was rejected with a 422).
+
 ## [0.1.0] - 2026-07-08
 
 ### Added
