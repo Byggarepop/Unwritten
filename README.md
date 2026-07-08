@@ -1,3 +1,5 @@
+<!-- mcp-name: io.github.Byggarepop/conventionsense -->
+
 # ConventionSense
 
 **The free, agent-native slice of change coupling.** ConventionSense learns from your git
@@ -7,7 +9,7 @@ confident *absences*: "you changed `OrderService.cs` but not
 
 It runs as an **MCP server** so AI coding agents (Claude Code, Copilot) can check
 their own edits for holes mid-session, and as a **CLI** for pre-commit hooks.
-One `dotnet tool install`, an index in `.conventionsense/`, no server, no subscription,
+One `dotnet tool execute`, an index in `.conventionsense/`, no server, no subscription,
 no tokens.
 
 ## This is not a new idea — and that's the point
@@ -29,7 +31,7 @@ Twenty years of research prove the signal is real. What ConventionSense adds:
 1. **Agent-native.** Coupling-absence checks exposed as MCP tools that coding
    agents call mid-edit. ROSE targeted humans in 2004-era IDEs; CodeScene's MCP
    server exposes Code Health analysis, not coupling-absence checks.
-2. **Free, open-source, local, zero-infrastructure.** One tool install, one JSON
+2. **Free, open-source, local, zero-infrastructure.** One dotnet tool, one JSON
    index in your repo, nothing else.
 3. **Explicit calibration.** The confidence score is the Wilson lower bound of
    the co-change proportion — not the raw ratio, which overtrusts small samples —
@@ -59,11 +61,19 @@ Baked-in consequences (do not change without re-validating):
 - Every alert carries evidence — counts and example commit SHAs — because an
   absence points at nothing, so the alert must bring its own proof.
 
-## Install & use
+## Use
+
+No install step — `dotnet tool execute` (or its alias `dnx`) downloads the tool
+on first use and runs it:
 
 ```bash
-dotnet tool install -g ConventionSense       # (once published; from source: dotnet pack + tool install --add-source)
+dotnet tool execute ConventionSense --yes -- check --staged
+# dnx ConventionSense --yes -- check --staged   works too
 ```
+
+Everything before `--` is for the tool runner; everything after it is the
+ConventionSense command line. (From source: `dotnet pack src/ConventionSense -o nupkg`,
+then add `--source nupkg --prerelease` before the `--`.)
 
 Add `.conventionsense/` to your `.gitignore` — the index is a local cache, rebuilt from
 history on demand.
@@ -71,7 +81,16 @@ history on demand.
 ### As an MCP server (Claude Code example)
 
 ```bash
-claude mcp add conventionsense -- conventionsense mcp
+claude mcp add conventionsense -- dotnet tool execute ConventionSense --yes -- mcp
+```
+
+Or in any `.mcp.json`-style config:
+
+```json
+{
+  "command": "dotnet",
+  "args": ["tool", "execute", "ConventionSense", "--yes", "--", "mcp"]
+}
 ```
 
 Tools exposed:
@@ -84,12 +103,12 @@ Tools exposed:
 | `stats(repoPath)` | Index health: indexed HEAD, transaction/entity/pair counts, index size, rule counts at floors 0.5/0.6/0.7/0.8. |
 | `reindex(repoPath)` | Force a full rebuild — after history rewrites or config changes. |
 
-### As a pre-commit hook
+### As a CLI
 
 ```bash
-conventionsense check --staged            # prints holes >= 0.6, exits 1 if any >= 0.7
-conventionsense check --staged --fail-at 0.8   # stricter gate
-conventionsense check src/Foo.cs src/Bar.cs    # check an explicit file set
+dotnet tool execute ConventionSense --yes -- check --staged            # prints holes >= 0.6, exits 1 if any >= 0.7
+dotnet tool execute ConventionSense --yes -- check --staged --fail-at 0.8   # stricter gate
+dotnet tool execute ConventionSense --yes -- check src/Foo.cs src/Bar.cs    # check an explicit file set
 ```
 
 The first call on a repository indexes its full history (seconds to a minute on
@@ -102,7 +121,7 @@ Plain git hook — create `.git/hooks/pre-commit` (no extension) with:
 
 ```sh
 #!/bin/sh
-exec conventionsense check --staged
+exec dotnet tool execute ConventionSense --yes -- check --staged
 ```
 
 and make it executable (`chmod +x .git/hooks/pre-commit`; not needed on
@@ -119,12 +138,12 @@ repos:
     hooks:
       - id: conventionsense
         name: conventionsense hole check
-        entry: conventionsense check --staged
+        entry: dotnet tool execute ConventionSense --yes -- check --staged
         language: system
         pass_filenames: false
 ```
 
-With [Husky](https://typicode.github.io/husky/): `echo "conventionsense check --staged" > .husky/pre-commit`.
+With [Husky](https://typicode.github.io/husky/): `echo "dotnet tool execute ConventionSense --yes -- check --staged" > .husky/pre-commit`.
 
 ### Configuration — `.conventionsense/config.json`
 
@@ -155,7 +174,7 @@ All settings are optional; missing ones use the validated defaults:
 
 Floors take effect immediately. Training settings (`minSupport`,
 `maxTransactionSize`, `maxExamplesPerPair`) describe how the index is built, so
-they take effect on the next full rebuild — run `conventionsense reindex` after changing
+they take effect on the next full rebuild — run `dotnet tool execute ConventionSense --yes -- reindex` after changing
 them. Command-line flags override the config file.
 
 ## How it works
