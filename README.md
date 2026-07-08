@@ -92,20 +92,34 @@ then add `--source nupkg --prerelease` before the `--`.)
 Add `.conventionsense/` to your `.gitignore` — the index is a local cache, rebuilt from
 history on demand.
 
-### As an MCP server (Claude Code example)
+### As an MCP server
+
+**Claude Code:**
 
 ```bash
 claude mcp add conventionsense -- dotnet tool execute ConventionSense --yes -- mcp
 ```
 
-Or in any `.mcp.json`-style config:
+**VS Code (Copilot Chat):** create or edit `.vscode/mcp.json` in your workspace:
 
 ```json
 {
-  "command": "dotnet",
-  "args": ["tool", "execute", "ConventionSense", "--yes", "--", "mcp"]
+  "servers": {
+    "conventionsense": {
+      "type": "stdio",
+      "command": "dotnet",
+      "args": ["tool", "execute", "ConventionSense", "--yes", "--", "mcp"]
+    }
+  }
 }
 ```
+
+**Visual Studio 2026 (GitHub Copilot Chat):** the same `servers` snippet as VS Code,
+in `%USERPROFILE%\.mcp.json` (all solutions) or a `.mcp.json` next to your solution
+file — then restart Visual Studio so it loads the server.
+
+Any other stdio MCP client: `dotnet` with
+`["tool", "execute", "ConventionSense", "--yes", "--", "mcp"]`.
 
 Tools exposed:
 
