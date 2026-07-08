@@ -12,6 +12,20 @@ their own edits for holes mid-session, and as a **CLI** for pre-commit hooks.
 One `dotnet tool execute`, an index in `.conventionsense/`, no server, no subscription,
 no tokens.
 
+## Quick start
+
+From your repo's root:
+
+```bash
+# 1. Build the index from your git history
+dotnet tool execute ConventionSense --yes -- reindex
+
+# 2. Register as an MCP server (Claude Code)
+claude mcp add conventionsense -- dotnet tool execute ConventionSense --yes -- mcp
+```
+
+That's it — your agent can now call `check_holes` after editing.
+
 ## This is not a new idea — and that's the point
 
 ConventionSense modernizes a 20-year-old research lineage for the agent era. The field is
