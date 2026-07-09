@@ -40,40 +40,38 @@ Mining Software Repositories community:
 - **CodeScene** ships commercial change-coupling analysis, and its CI/CD delta
   analysis includes detecting the absence of expected coupling in PRs.
 
-Twenty years of research prove the signal is real. What ConventionSense adds:
+**What ConventionSense adds:**
 
-1. **Agent-native.** Coupling-absence checks exposed as MCP tools that coding
-   agents call mid-edit. ROSE targeted humans in 2004-era IDEs; CodeScene's MCP
-   server exposes Code Health analysis, not coupling-absence checks.
-2. **Free, open-source, local, zero-infrastructure.** One dotnet tool, one JSON
-   index in your repo, nothing else.
-3. **Explicit calibration.** The confidence score is the Wilson lower bound of
-   the co-change proportion — not the raw ratio, which overtrusts small samples —
-   with an empirically validated alert floor (below).
+**Built for AI assistants.** Coding agents like Claude Code and Copilot can ask ConventionSense "did I forget anything?" while they work. Older tools were built for humans clicking in an editor (ROSE, 2004), or check code quality rather than missing changes (CodeScene).
 
-## Why these thresholds (validated empirically)
+**Free and simple.** Open source, runs on your machine, needs no server or account. One installed tool, one small index file in your repo — that's it.
 
-A prototype was evaluated on EF Core (13,642 commits, 1,976 learned rules,
-2,047 held-out test commits), measuring how often a flagged hole was "filled"
-within 10 subsequent commits:
+**Honest about certainty.** If two files changed together 3 times out of 4, that could easily be coincidence. If it happened 90 times out of 100, it's a real pattern. ConventionSense uses a statistical formula (the Wilson lower bound) that scores evidence based on both how often the pattern held *and* how much evidence there is:
 
-| Wilson-LB confidence | holes flagged | filled within 10 commits |
+- 3 out of 4 → raw ratio 75%, but confidence only **0.30** — too little evidence to trust
+- 15 out of 17 → raw ratio 88%, confidence **0.66** — starting to look real
+- 90 out of 100 → raw ratio 90%, confidence **0.82** — a real pattern
+- 15 out of 15 → a perfect record, confidence **0.80** — a small project *can* earn high confidence, but only with a spotless history
+
+So more evidence is always worth more: 3 out of 4 and 90 out of 100 get very different scores, even though the percentages look similar. And when two patterns do end up with the same score, they've earned it — a small project needs a near-perfect record to reach what a large one reaches with a few exceptions.
+
+## Why these thresholds (tested on real data)
+
+We tested the idea on EF Core, a large Microsoft project (13,642 commits). The tool learned 1,976 patterns from the older history, then flagged "holes" — expected files that were missing from a change — in the 2,047 newest commits. We then checked: was the missing file actually changed soon after (within 10 commits)? If yes, the warning was probably right.
+
+| Confidence | holes flagged | turned out to be right |
 |---|---|---|
-| 0.3–0.5 | 1,429 | ~10% (noise floor) |
+| 0.3–0.5 | 1,429 | ~10% (basically noise) |
 | 0.6 | 254 | 50% |
 | 0.7 | 328 | 66.5% |
 | 0.8 | 133 | 79.7% |
 
-Baked-in consequences (do not change without re-validating):
+The pattern is clear: below 0.6 the warnings are mostly noise, above 0.6 they quickly become trustworthy. That's why these defaults are built in (don't change them without re-testing):
 
-- **Wilson lower bound** (z = 1.96) is the confidence score.
-- Default **alert floor 0.6** — the empirical phase transition; the CLI's
-  default **fail floor is 0.7**.
-- Commits touching **more than 30 files** are excluded from training
-  (refactor/merge noise), as are **merge commits**.
-- A rule needs **at least 10 changes** of the trigger file (minimum support).
-- Every alert carries evidence — counts and example commit SHAs — because an
-  absence points at nothing, so the alert must bring its own proof.
+- Warnings start at confidence **0.6** — where the data shows warnings start being right. The CLI blocks a commit only at **0.7**.
+- Commits touching more than 30 files are ignored during learning — big refactors and merges would teach false patterns.
+- A file must have changed at least 10 times before rules about it are trusted.
+- **Every warning comes with proof** — how many times the pattern held, and links to real example commits. A warning about something *missing* can't point at a file, so it has to bring its own evidence.
 
 ## Use
 
