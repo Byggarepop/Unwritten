@@ -84,8 +84,7 @@ dotnet tool execute ConventionSense --yes -- check --staged
 ```
 
 Everything before `--` is for the tool runner; everything after it is the
-ConventionSense command line. (From source: `dotnet pack src/ConventionSense -o nupkg`,
-then add `--source nupkg --prerelease` before the `--`.)
+ConventionSense command line.
 
 Add `.conventionsense/` to your `.gitignore` — the index is a local cache, rebuilt from
 history on demand.
@@ -118,6 +117,42 @@ file — then restart Visual Studio so it loads the server.
 
 Any other stdio MCP client: `dotnet` with
 `["tool", "execute", "ConventionSense", "--yes", "--", "mcp"]`.
+
+**Through an MCP gateway** (e.g. [McpOrchestrator](https://github.com/Byggarepop/dotnet-mcp-orchestrator)):
+the router's LLM only sees your capability description, so give it one that says
+*when* to call ConventionSense. Copy this as the capability's instructions:
+
+```text
+ConventionSense — repo convention guard. Learns which files AND
+code members (methods, classes) historically change together
+(mined from git history, statistical confidence with evidence)
+and flags expected-but-missing companion changes at both levels.
+
+CALL THIS WHEN:
+- You have made ANY code change in a git repo — modified a method,
+  added a class, renamed something, edited config, created or
+  deleted files — and are about to finish a task, commit, or hand
+  back to the user → check_holes with the changed files. Works at
+  member level too: "you changed CalculateFreight but not its
+  tests" — so call it even when only method bodies changed.
+- You are planning a change and want to know which files or
+  members usually accompany the one you're about to touch →
+  expected_companions.
+- A hole was flagged and you need to judge whether this case is a
+  legitimate exception → explain_rule (returns historical evidence
+  and past exceptions).
+- The user asks "did I/you forget anything?", "what usually
+  changes with this?", or mentions co-change/conventions →
+  check_holes or expected_companions.
+- Index maintenance: reindex after large history changes; stats
+  for index health.
+
+DO NOT CALL FOR: code quality/lint/style questions, test
+execution, non-git workspaces, or questions about code *content*.
+Warnings are patterns, not rules — high-confidence holes (≥0.7)
+should be fixed or explicitly justified; lower ones are
+suggestions.
+```
 
 Tools exposed:
 
@@ -281,14 +316,3 @@ Honesty section — known limitations of phase 1:
   `expected_companions`) are pure index lookups; `explain_rule` additionally
   runs one targeted `git log -- <fileA>` to list commits where A changed alone.
 
-## Development
-
-```bash
-dotnet test          # unit + integration tests (integration tests script synthetic git repos in temp dirs)
-dotnet pack src/ConventionSense
-```
-
-Layout: `ConventionSense.Core` (pure counting/scoring engine — no git, no I/O),
-`ConventionSense.Git` (thin adapter shelling out to `git`), `ConventionSense.Storage`
-(`.conventionsense/index.json` persistence + incremental updates), `ConventionSense` (the
-`conventionsense` tool: MCP server + CLI).
