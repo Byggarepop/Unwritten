@@ -35,7 +35,7 @@ storage, and surface work.
 - **Not mixed into the file index**: file and member entities in one index
   would double-alert every hole (file pair + its member pairs) and multiply
   pair counts. Two indexes, same engine, same schema:
-  `.conventionsense/index.json` (files, unchanged) and `.conventionsense/members.json`
+  `.unwritten/index.json` (files, unchanged) and `.unwritten/members.json`
   (members, `source.adapter: "git+roslyn"`).
 - Queries run against both and report `fileHoles` and `memberHoles` as
   separate sections. A member hole and its enclosing file hole may both appear;
@@ -47,7 +47,7 @@ storage, and surface work.
 nested types with `+`). Rationale:
 
 - Excluding the file path makes identity survive file renames and moves —
-  the thing file-level ConventionSense explicitly cannot do. Partial classes collapse
+  the thing file-level Unwritten explicitly cannot do. Partial classes collapse
   to the same entity, which is semantically correct.
 - **Arity, not full signature**: parameter *renames* and type-name churn
   don't break identity; overloads with different parameter counts stay
@@ -85,7 +85,7 @@ Member training needs 2 blob reads + 2 parses per (changed .cs file ×
 commit). On EF Core-scale history that's hundreds of thousands of parses. So:
 
 1. **Opt-in.** Member indexing is off by default; enabled by
-   `"memberLevel": true` in `.conventionsense/config.json` (or `conventionsense reindex
+   `"memberLevel": true` in `.unwritten/config.json` (or `unwritten reindex
    --members` once). File-level behavior never changes for repos that don't
    opt in.
 2. **History window.** Member training covers the most recent
@@ -121,7 +121,7 @@ minutes, not seconds. Warm queries stay pure lookups, unchanged.
   separator, or explicit `member:` prefix — reviewer input welcome, see Q3).
 - `stats` — gains a `memberIndex` section (window, member count, pair count,
   rules at floors).
-- CLI `conventionsense check` prints member holes under each file hole; member holes
+- CLI `unwritten check` prints member holes under each file hole; member holes
   participate in the exit-code decision with the same `failConfidence`.
 - Separate thresholds: `memberMinSupport` (default **10**, same as files
   until measured otherwise) — member histories are sparser, so this may
@@ -141,12 +141,12 @@ minutes, not seconds. Warm queries stay pure lookups, unchanged.
 
 ## Implementation stages (each independently testable)
 
-1. **Syntactic differ + identity scheme** (`ConventionSense.Roslyn` project):
+1. **Syntactic differ + identity scheme** (`Unwritten.Roslyn` project):
    `MemberDiff.ChangedMembers(beforeSource, afterSource) → set of member ids`
    plus the id builder. Pure functions, heavy unit-test matrix (nesting,
    partial classes, overloads, namespaces incl. file-scoped, comment-only
    edits, top-level statements, parse errors).
-2. **Batch blob reader**: `git cat-file --batch` wrapper in `ConventionSense.Git` +
+2. **Batch blob reader**: `git cat-file --batch` wrapper in `Unwritten.Git` +
    tests against synthetic repos.
 3. **Member training + storage**: second `CoChangeIndex` built through the
    window, persisted to `members.json` (reusing `IndexStore` generically),

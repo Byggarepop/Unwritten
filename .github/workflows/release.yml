@@ -6,7 +6,7 @@ name: Release
 # NuGet publishing uses Trusted Publishing (OIDC) — no stored API key. nuget.org issues a
 # short-lived key to this workflow at run time. It is OFF by default; to enable it:
 #   1. nuget.org -> (your username) -> Trusted Publishing -> add a policy:
-#        Repository Owner: Byggarepop   Repository: ConventionSense
+#        Repository Owner: Byggarepop   Repository: Unwritten
 #        Workflow File: release.yml     Environment: release   (must match the job's environment below)
 #   2. add the repo secret   NUGET_USER    = your nuget.org username (profile name, NOT your email)
 #   3. set the repo variable PUBLISH_NUGET = true   (Settings -> Secrets and variables -> Actions)
@@ -38,10 +38,10 @@ jobs:
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
 
       - name: Build and test
-        run: dotnet test ConventionSense.slnx -c Release
+        run: dotnet test Unwritten.slnx -c Release
 
       - name: Pack
-        run: dotnet pack src/ConventionSense/ConventionSense.csproj -c Release -p:Version=${{ steps.version.outputs.VERSION }} --output ./artifacts
+        run: dotnet pack src/Unwritten/Unwritten.csproj -c Release -p:Version=${{ steps.version.outputs.VERSION }} --output ./artifacts
 
       # NuGet publishing is OFF unless you opt in (see header): both steps below run only when
       # PUBLISH_NUGET == 'true'. Trusted Publishing — login exchanges the OIDC token for a
@@ -76,7 +76,7 @@ jobs:
 
   # Publish the server listing to the Official MCP Registry (registry.modelcontextprotocol.io),
   # which downstream registries (e.g. the GitHub MCP Registry) consume. The registry verifies that
-  # the NuGet package's packed README carries the `mcp-name: io.github.Byggarepop/conventionsense`
+  # the NuGet package's packed README carries the `mcp-name: io.github.Byggarepop/unwritten`
   # marker, so this MUST run AFTER the package is live on nuget.org — hence `needs: publish` plus
   # the README availability poll below. Auth is GitHub OIDC (no stored secret): the workflow's OIDC
   # token proves it runs in Byggarepop/* and unlocks the io.github.Byggarepop/* namespace.
@@ -109,7 +109,7 @@ jobs:
       # has finished validating and the README endpoint is live before publishing.
       - name: Wait for NuGet README to be available
         run: |
-          id="conventionsense"; version="$(echo "$VERSION" | tr '[:upper:]' '[:lower:]')"
+          id="unwritten"; version="$(echo "$VERSION" | tr '[:upper:]' '[:lower:]')"
           url="https://api.nuget.org/v3-flatcontainer/$id/$version/readme"
           for i in $(seq 1 30); do
             if curl -sfL "$url" >/dev/null; then echo "README available after ~$((i*10))s"; exit 0; fi

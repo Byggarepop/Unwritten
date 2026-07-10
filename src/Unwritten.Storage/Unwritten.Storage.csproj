@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Unwritten.Core\Unwritten.Core.csproj" />
+    <ProjectReference Include="..\Unwritten.Git\Unwritten.Git.csproj" />
+    <ProjectReference Include="..\Unwritten.Roslyn\Unwritten.Roslyn.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

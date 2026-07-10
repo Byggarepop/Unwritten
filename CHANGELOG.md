@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Project renamed from ConventionSense to Unwritten.** New NuGet package ID
+  `Unwritten`, tool command `unwritten`, MCP server name
+  `io.github.Byggarepop/unwritten`, index directory `.unwritten/`, and repository
+  URL <https://github.com/Byggarepop/Unwritten>. Versions ≤ 0.1.2 were published
+  as `ConventionSense`; earlier changelog entries below refer to the old name.
+
 ## [0.1.2] - 2026-07-09
 
 ### Changed

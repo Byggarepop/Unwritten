@@ -16,4 +16,4 @@ jobs:
           dotnet-version: '10.x'
 
       - name: Build and test
-        run: dotnet test ConventionSense.slnx -c Release
+        run: dotnet test Unwritten.slnx -c Release

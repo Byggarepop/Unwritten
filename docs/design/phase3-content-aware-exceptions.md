@@ -134,7 +134,7 @@ exit-code decision** — that is the actual false-alarm relief.
 confidence) when facet stats exist for the pair — so "why was this
 suppressed?" has a first-class answer.
 
-## Config additions (`.conventionsense/config.json`)
+## Config additions (`.unwritten/config.json`)
 
 | Key | Default | Meaning |
 |---|---|---|
