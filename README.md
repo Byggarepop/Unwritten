@@ -1,15 +1,15 @@
-<!-- mcp-name: io.github.Byggarepop/conventionsense -->
+<!-- mcp-name: io.github.Byggarepop/unwritten -->
 
-# ConventionSense
+# Unwritten
 
-**The free, agent-native slice of change coupling.** ConventionSense learns from your git
+**The free, agent-native slice of change coupling.** Unwritten learns from your git
 history which files are expected to change together, and flags statistically
 confident *absences*: "you changed `OrderService.cs` but not
 `OrderServiceTests.cs`, and they co-change 94% of the time."
 
 It runs as an **MCP server** so AI coding agents (Claude Code, Copilot) can check
 their own edits for holes mid-session, and as a **CLI** for pre-commit hooks.
-One `dotnet tool execute`, an index in `.conventionsense/`, no server, no subscription,
+One `dotnet tool execute`, an index in `.unwritten/`, no server, no subscription,
 no tokens.
 
 ## Quick start
@@ -18,35 +18,43 @@ From your repo's root:
 
 ```bash
 # 1. Build the index from your git history
-dotnet tool execute ConventionSense --yes -- reindex
+dotnet tool execute Unwritten --yes -- reindex
 
 # 2. Register as an MCP server (Claude Code)
-claude mcp add conventionsense -- dotnet tool execute ConventionSense --yes -- mcp
+claude mcp add unwritten -- dotnet tool execute Unwritten --yes -- mcp
 ```
 
 That's it — your agent can now call `check_holes` after editing.
 
 ## This is not a new idea — and that's the point
 
-ConventionSense modernizes a 20-year-old research lineage for the agent era. The field is
+Unwritten modernizes a 20-year-old research lineage for the agent era. The field is
 called *change coupling* (or *evolutionary coupling*), studied extensively by the
 Mining Software Repositories community:
 
 - **ROSE (Zimmermann, Weißgerber, Diehl & Zeller, 2004–2005)** mined association
   rules from version history in an Eclipse plugin — "programmers who changed
   these functions also changed…" — explicitly to prevent errors from incomplete
-  changes, including warnings about missing items. ConventionSense is essentially ROSE
+  changes, including warnings about missing items. Unwritten is essentially ROSE
   reborn.
-- **CodeScene** ships commercial change-coupling analysis, and its CI/CD delta
-  analysis includes detecting the absence of expected coupling in PRs.
+- **CodeScene** (commercial) is the closest neighbor. Its delta analysis can
+  also warn when an expected change pattern is broken — a file that usually
+  changes with another is missing from a pull request. The difference is
+  *where* and *how* it runs: CodeScene is a server product that analyzes pull
+  requests after the fact, as part of a paid platform for code health,
+  hotspots, and team analytics. Unwritten is one small free tool that answers
+  the same kind of question *while the code is being written* — inside the
+  coding agent's loop, before anything is committed — locally, with no server,
+  and with every warning carrying its explicit confidence score and example
+  commits as proof.
 
-**What ConventionSense adds:**
+**What Unwritten adds:**
 
-**Built for AI assistants.** Coding agents like Claude Code and Copilot can ask ConventionSense "did I forget anything?" while they work. Older tools were built for humans clicking in an editor (ROSE, 2004), or check code quality rather than missing changes (CodeScene).
+**Built for AI assistants.** Coding agents like Claude Code and Copilot can ask Unwritten "did I forget anything?" *while they work* — not after the pull request is opened. Older tools were built for humans clicking in an editor (ROSE, 2004) or review changes server-side after the fact (CodeScene).
 
 **Free and simple.** Open source, runs on your machine, needs no server or account. One installed tool, one small index file in your repo — that's it.
 
-**Honest about certainty.** If two files changed together 3 times out of 4, that could easily be coincidence. If it happened 90 times out of 100, it's a real pattern. ConventionSense uses a statistical formula (the Wilson lower bound) that scores evidence based on both how often the pattern held *and* how much evidence there is:
+**Honest about certainty.** If two files changed together 3 times out of 4, that could easily be coincidence. If it happened 90 times out of 100, it's a real pattern. Unwritten uses a statistical formula (the Wilson lower bound) that scores evidence based on both how often the pattern held *and* how much evidence there is:
 
 - 3 out of 4 → raw ratio 75%, but confidence only **0.30** — too little evidence to trust
 - 15 out of 17 → raw ratio 88%, confidence **0.66** — starting to look real
@@ -79,14 +87,14 @@ No install step — `dotnet tool execute` (or its alias `dnx`) downloads the too
 on first use and runs it:
 
 ```bash
-dotnet tool execute ConventionSense --yes -- check --staged
-# dnx ConventionSense --yes -- check --staged   works too
+dotnet tool execute Unwritten --yes -- check --staged
+# dnx Unwritten --yes -- check --staged   works too
 ```
 
 Everything before `--` is for the tool runner; everything after it is the
-ConventionSense command line.
+Unwritten command line.
 
-Add `.conventionsense/` to your `.gitignore` — the index is a local cache, rebuilt from
+Add `.unwritten/` to your `.gitignore` — the index is a local cache, rebuilt from
 history on demand.
 
 ### As an MCP server
@@ -94,7 +102,7 @@ history on demand.
 **Claude Code:**
 
 ```bash
-claude mcp add conventionsense -- dotnet tool execute ConventionSense --yes -- mcp
+claude mcp add unwritten -- dotnet tool execute Unwritten --yes -- mcp
 ```
 
 **VS Code (Copilot Chat):** create or edit `.vscode/mcp.json` in your workspace:
@@ -102,10 +110,10 @@ claude mcp add conventionsense -- dotnet tool execute ConventionSense --yes -- m
 ```json
 {
   "servers": {
-    "conventionsense": {
+    "unwritten": {
       "type": "stdio",
       "command": "dotnet",
-      "args": ["tool", "execute", "ConventionSense", "--yes", "--", "mcp"]
+      "args": ["tool", "execute", "Unwritten", "--yes", "--", "mcp"]
     }
   }
 }
@@ -116,14 +124,14 @@ in `%USERPROFILE%\.mcp.json` (all solutions) or a `.mcp.json` next to your solut
 file — then restart Visual Studio so it loads the server.
 
 Any other stdio MCP client: `dotnet` with
-`["tool", "execute", "ConventionSense", "--yes", "--", "mcp"]`.
+`["tool", "execute", "Unwritten", "--yes", "--", "mcp"]`.
 
 **Through an MCP gateway** (e.g. [McpOrchestrator](https://github.com/Byggarepop/dotnet-mcp-orchestrator)):
 the router's LLM only sees your capability description, so give it one that says
-*when* to call ConventionSense. Copy this as the capability's instructions:
+*when* to call Unwritten. Copy this as the capability's instructions:
 
 ```text
-ConventionSense — repo convention guard. Learns which files AND
+Unwritten — repo convention guard. Learns which files AND
 code members (methods, classes) historically change together
 (mined from git history, statistical confidence with evidence)
 and flags expected-but-missing companion changes at both levels.
@@ -167,9 +175,9 @@ Tools exposed:
 ### As a CLI
 
 ```bash
-dotnet tool execute ConventionSense --yes -- check --staged            # prints holes >= 0.6, exits 1 if any >= 0.7
-dotnet tool execute ConventionSense --yes -- check --staged --fail-at 0.8   # stricter gate
-dotnet tool execute ConventionSense --yes -- check src/Foo.cs src/Bar.cs    # check an explicit file set
+dotnet tool execute Unwritten --yes -- check --staged            # prints holes >= 0.6, exits 1 if any >= 0.7
+dotnet tool execute Unwritten --yes -- check --staged --fail-at 0.8   # stricter gate
+dotnet tool execute Unwritten --yes -- check src/Foo.cs src/Bar.cs    # check an explicit file set
 ```
 
 The first call on a repository indexes its full history (seconds to a minute on
@@ -182,7 +190,7 @@ Plain git hook — create `.git/hooks/pre-commit` (no extension) with:
 
 ```sh
 #!/bin/sh
-exec dotnet tool execute ConventionSense --yes -- check --staged
+exec dotnet tool execute Unwritten --yes -- check --staged
 ```
 
 and make it executable (`chmod +x .git/hooks/pre-commit`; not needed on
@@ -197,16 +205,16 @@ With the [pre-commit](https://pre-commit.com) framework, add to
 repos:
   - repo: local
     hooks:
-      - id: conventionsense
-        name: conventionsense hole check
-        entry: dotnet tool execute ConventionSense --yes -- check --staged
+      - id: unwritten
+        name: unwritten hole check
+        entry: dotnet tool execute Unwritten --yes -- check --staged
         language: system
         pass_filenames: false
 ```
 
-With [Husky](https://typicode.github.io/husky/): `echo "dotnet tool execute ConventionSense --yes -- check --staged" > .husky/pre-commit`.
+With [Husky](https://typicode.github.io/husky/): `echo "dotnet tool execute Unwritten --yes -- check --staged" > .husky/pre-commit`.
 
-### Configuration — `.conventionsense/config.json`
+### Configuration — `.unwritten/config.json`
 
 All settings are optional; missing ones use the validated defaults:
 
@@ -235,15 +243,15 @@ All settings are optional; missing ones use the validated defaults:
 
 Floors take effect immediately. Training settings (`minSupport`,
 `maxTransactionSize`, `maxExamplesPerPair`) describe how the index is built, so
-they take effect on the next full rebuild — run `dotnet tool execute ConventionSense --yes -- reindex` after changing
+they take effect on the next full rebuild — run `dotnet tool execute Unwritten --yes -- reindex` after changing
 them. Command-line flags override the config file.
 
 ## How it works
 
-For every non-merge commit touching ≤ 30 files, ConventionSense counts each file's
+For every non-merge commit touching ≤ 30 files, Unwritten counts each file's
 changes and each file pair's co-changes. A rule A→B exists when A has changed at
 least 10 times and `wilson_lb(co(A,B), count(A)) ≥ floor`. The index lives in
-`.conventionsense/index.json`, keyed by the indexed HEAD; when HEAD moves, only the new
+`.unwritten/index.json`, keyed by the indexed HEAD; when HEAD moves, only the new
 commits are counted.
 
 Internally the engine is domain-neutral — it counts *entities* in
@@ -253,7 +261,7 @@ member-level entities (Roslyn) and non-git event streams.
 
 ### Content-aware exceptions for JSON files
 
-For rules whose trigger is a JSON file, ConventionSense additionally learns **which
+For rules whose trigger is a JSON file, Unwritten additionally learns **which
 keys** predict the co-change — the same Wilson scoring, one level down
 (key paths like `info.version`, arrays collapsed to `packages[].name`).
 When your current edit touched only keys that history says are
@@ -272,8 +280,8 @@ repos without JSON coupling. `explain_rule` exposes the per-key breakdown
 
 ### Member-level rules for C# (opt-in)
 
-With `"memberLevel": true`, ConventionSense builds a second index
-(`.conventionsense/members.json`) where the entities are C# *members* —
+With `"memberLevel": true`, Unwritten builds a second index
+(`.unwritten/members.json`) where the entities are C# *members* —
 `Namespace.Type.Method/arity` — extracted by diffing each commit's changed
 `.cs` files syntactically (Roslyn, no compilation). `check_holes` then also
 reports **memberHoles**: companion methods that history couples to the

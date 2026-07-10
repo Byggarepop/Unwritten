@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Unwritten.Core/Unwritten.Core.csproj" />
+    <Project Path="src/Unwritten.Git/Unwritten.Git.csproj" />
+    <Project Path="src/Unwritten.Roslyn/Unwritten.Roslyn.csproj" />
+    <Project Path="src/Unwritten.Storage/Unwritten.Storage.csproj" />
+    <Project Path="src/Unwritten/Unwritten.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Unwritten.Core.Tests/Unwritten.Core.Tests.csproj" />
+    <Project Path="tests/Unwritten.Integration.Tests/Unwritten.Integration.Tests.csproj" />
+  </Folder>
+</Solution>
