@@ -40,11 +40,14 @@
          the packed .nupkg to prove ownership of the server name, so it MUST stay in sync with the
          "name" in .mcp/server.json (case-sensitive; must match the GitHub login casing). -->
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>unwritten-steps-128.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <!-- Ship the root README as the package README shown on nuget.org — same file as GitHub. -->
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <!-- Package icon shown on nuget.org (embedded in the .nupkg; 128x128 is the recommended size). -->
+    <None Include="..\..\img\unwritten-steps-128.png" Pack="true" PackagePath="\" />
     <!-- Embedded registry manifest: nuget.org reads it to render the "MCP Server" tab and the
          one-click VS Code config. Same file is published to the Official MCP Registry on release. -->
     <None Include="..\..\.mcp\server.json" Pack="true" PackagePath=".mcp/server.json" />

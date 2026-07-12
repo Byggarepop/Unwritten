@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <rect width="256" height="256" rx="56" fill="#1D2433"/>
+  <rect width="256" height="256" rx="56" fill="url(#g)"/>
+  <defs>
+    <radialGradient id="g" cx="0.3" cy="0.25" r="1.1">
+      <stop offset="0" stop-color="#2A3450" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#1D2433" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- Step 1: done -->
+  <circle cx="72" cy="78" r="15" fill="#F2ECDC"/>
+  <path d="M 108 78 L 196 78" stroke="#F2ECDC" stroke-width="18" stroke-linecap="round"/>
+  <!-- Step 2: done -->
+  <circle cx="72" cy="128" r="15" fill="#F2ECDC"/>
+  <path d="M 108 128 L 172 128" stroke="#F2ECDC" stroke-width="18" stroke-linecap="round"/>
+  <!-- Step 3: the unwritten next step -->
+  <!-- Ring: 8 mathematically equal dashes, butt caps for crispness -->
+  <circle cx="72" cy="178" r="12.5" fill="none" stroke="#E8B45A" stroke-width="5"
+          stroke-dasharray="4.340 8.75" stroke-dashoffset="2.170" stroke-linecap="round"/>
+  <!-- Line: three identical segments, identical 10px visual gaps, aligned with row 1 -->
+  <path d="M 108 178 L 118.67 178" stroke="#E8B45A" stroke-width="18" stroke-linecap="round"/>
+  <path d="M 146.67 178 L 157.33 178" stroke="#E8B45A" stroke-width="18" stroke-linecap="round"/>
+  <path d="M 185.33 178 L 196 178" stroke="#E8B45A" stroke-width="18" stroke-linecap="round"/>
+</svg>
