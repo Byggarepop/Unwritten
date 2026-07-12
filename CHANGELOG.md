@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- README badges: NuGet version, downloads, license (same style as McpOrchestrator).
 - Project icon (`img/`): embedded as the NuGet package icon, listed in the MCP
   Registry manifest (`icons` in `server.json`), and shown in the README.
 
