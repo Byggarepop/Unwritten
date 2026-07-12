@@ -23,6 +23,10 @@ public sealed class GitCatFileBatch : IDisposable
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
+            // Specs are written verbatim; without this, non-ASCII paths go out in
+            // the console codepage on Windows, git answers "missing", and those
+            // files silently drop out of member training.
+            StandardInputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
         };
         startInfo.ArgumentList.Add("cat-file");
         startInfo.ArgumentList.Add("--batch");

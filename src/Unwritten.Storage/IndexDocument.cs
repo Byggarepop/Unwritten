@@ -46,6 +46,9 @@ public sealed class ConfigDocument
     public double FacetCandidateFloor { get; set; } = 0.5;
     public int MaxFacetsPerEntity { get; set; } = 64;
     public int FacetMaxDepth { get; set; } = 3;
+
+    /// <summary>Training history window (0 = full history). Member index only; absent in older files, which forces one rebuild.</summary>
+    public int HistoryWindow { get; set; }
 }
 
 public sealed class EntityDocument

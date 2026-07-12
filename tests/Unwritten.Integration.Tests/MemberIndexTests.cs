@@ -169,6 +169,21 @@ public class MemberIndexTests : IDisposable
     }
 
     [Fact]
+    public void HistoryWindowChangeTriggersAutomaticRebuild()
+    {
+        BuildHistory();
+        Assert.Equal(15, _manager.GetMembersUpToDate(_repo.Path)!.Index.TransactionCount);
+
+        // No manual reindex: the persisted member index must be invalidated by
+        // the window change alone (same manager, HEAD unchanged).
+        File.WriteAllText(
+            Path.Combine(_repo.Path, ".unwritten", "config.json"),
+            """{ "memberLevel": true, "memberHistoryWindow": 3 }""");
+
+        Assert.Equal(3, _manager.GetMembersUpToDate(_repo.Path)!.Index.TransactionCount);
+    }
+
+    [Fact]
     public void HistoryWindowLimitsTraining()
     {
         BuildHistory();

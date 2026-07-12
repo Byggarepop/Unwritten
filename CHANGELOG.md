@@ -5,6 +5,62 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`baseRef` support** (MCP `check_holes` parameter, CLI `--base <rev>`): measure
+  the edit against a chosen revision instead of HEAD. Essential for commit-as-you-go
+  agent sessions — pass the pre-work SHA and committed edits are still seen.
+- **Changed-file auto-detection**: omit `files` in `check_holes` (or run
+  `unwritten check` with no arguments) to check every uncommitted change —
+  staged, unstaged, and untracked (or everything since `baseRef`).
+- **Per-file data status**: `check_holes` returns `checkedFiles` with
+  `totalChanges`/`canTriggerRules` per input, plus `notes` when a file has no or
+  too little history — an empty result now says "no data" instead of looking
+  like "all good". The CLI prints the same as `note:` lines.
+- **`unwritten install-hook`**: one command installs a git pre-commit hook
+  (`--git`), a Claude Code Stop hook (`--claude-code`), or both — deterministic
+  invocation instead of hoping the agent remembers the tool. The Stop hook runs
+  `unwritten hook stop`, which feeds failing holes back to the agent (exit 2)
+  and always fails open.
+- **Automatic reindex on training-config change**: editing training settings in
+  `.unwritten/config.json` (minSupport, maxTransactionSize, member settings
+  including memberHistoryWindow, …) now triggers a rebuild on the next query;
+  floor changes apply immediately, including in the MCP server. Manual
+  `reindex` remains for history rewrites. Existing member indexes are rebuilt
+  once (the history window is now part of the persisted training fingerprint).
+- `.unwritten/` now writes its own `.gitignore` — no root .gitignore edit needed.
+- Config validation with clear errors (invalid JSON or out-of-range values in
+  `.unwritten/config.json` no longer crash with a stack trace).
+- CLI: `--version`, `--help`/`-h` (also for `check`), friendly error for
+  repositories without commits.
+
+### Fixed
+
+- **False "cosmetic edit" suppression after committing**: when the working tree
+  matched HEAD (agent committed, then checked), every C#-triggered hole was
+  suppressed as a whitespace/comment-only edit. Identical content is now treated
+  as "no visible edit" and fails open.
+- Any path inside the repository now works as `repoPath`: it is resolved to the
+  repo root (`git rev-parse --show-toplevel`), so monorepo subdirectory paths no
+  longer silently produce zero matches.
+- Path normalization: leading `./` segments are stripped, and absolute paths in
+  a sibling directory sharing a name prefix (`repo` vs `repo2`) are no longer
+  mis-relativized; repo-root matching is case-insensitive on Windows only.
+- A corrupt `.unwritten/index.json` triggers a silent rebuild instead of
+  crashing every subsequent command.
+- `git cat-file --batch` stdin is now UTF-8, so non-ASCII file paths no longer
+  silently drop out of member-level training on Windows.
+- Index saves use a unique temp file name — concurrent saves (MCP server +
+  pre-commit hook) can no longer collide.
+
+### Changed
+
+- MCP responses are compact JSON (fewer tokens per call).
+- `check_holes` clamps an explicit `minConfidence` below 0.3 (with a note) —
+  validated as ~90% noise.
+
 ## [0.2.1] - 2026-07-12
 
 ### Added

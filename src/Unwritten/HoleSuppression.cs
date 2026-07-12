@@ -29,7 +29,8 @@ public static class HoleSuppression
         GitTransactionSource gitSource,
         string repoPath,
         IReadOnlyList<HoleResult> holes,
-        bool staged)
+        bool staged,
+        string baseRevision = "HEAD")
     {
         var jsonFacetsByTrigger = new Dictionary<string, IReadOnlySet<string>?>(StringComparer.Ordinal);
         var csChangedByTrigger = new Dictionary<string, IReadOnlySet<string>?>(StringComparer.Ordinal);
@@ -38,14 +39,15 @@ public static class HoleSuppression
         foreach (var hole in holes)
         {
             annotated.Add(AnnotateOne(
-                index, gitSource, repoPath, hole, staged, jsonFacetsByTrigger, csChangedByTrigger));
+                index, gitSource, repoPath, hole, staged, baseRevision, jsonFacetsByTrigger, csChangedByTrigger));
         }
 
         return annotated;
     }
 
     private static AnnotatedHole AnnotateOne(
-        CoChangeIndex index, GitTransactionSource gitSource, string repoPath, HoleResult hole, bool staged,
+        CoChangeIndex index, GitTransactionSource gitSource, string repoPath, HoleResult hole,
+        bool staged, string baseRevision,
         Dictionary<string, IReadOnlySet<string>?> jsonFacetsByTrigger,
         Dictionary<string, IReadOnlySet<string>?> csChangedByTrigger)
     {
@@ -54,7 +56,7 @@ public static class HoleSuppression
         {
             if (!jsonFacetsByTrigger.TryGetValue(hole.Trigger, out var facets))
             {
-                var contents = ReadBeforeAfter(gitSource, repoPath, hole.Trigger, staged);
+                var contents = ReadBeforeAfter(gitSource, repoPath, hole.Trigger, staged, baseRevision);
                 facets = contents is var (before, after)
                     ? JsonFacetDiff.ChangedFacets(before, after, index.Config.FacetMaxDepth, index.Config.MaxFacetsPerEntity)
                     : null;
@@ -74,7 +76,7 @@ public static class HoleSuppression
         {
             if (!csChangedByTrigger.TryGetValue(hole.Trigger, out var changedMembers))
             {
-                var contents = ReadBeforeAfter(gitSource, repoPath, hole.Trigger, staged);
+                var contents = ReadBeforeAfter(gitSource, repoPath, hole.Trigger, staged, baseRevision);
                 changedMembers = contents is var (before, after) ? MemberDiff.ChangedMembers(before, after) : null;
                 csChangedByTrigger[hole.Trigger] = changedMembers;
             }
@@ -90,22 +92,26 @@ public static class HoleSuppression
         return new AnnotatedHole(hole, null);
     }
 
-    /// <summary>Current changed members of an input .cs file (working tree or staged vs HEAD); null = unknown.</summary>
+    /// <summary>Current changed members of an input .cs file (working tree or staged vs base); null = unknown.</summary>
     public static IReadOnlySet<string>? GetChangedMembers(
-        GitTransactionSource gitSource, string repoPath, string csFile, bool staged)
+        GitTransactionSource gitSource, string repoPath, string csFile, bool staged, string baseRevision = "HEAD")
     {
-        var contents = ReadBeforeAfter(gitSource, repoPath, csFile, staged);
+        var contents = ReadBeforeAfter(gitSource, repoPath, csFile, staged, baseRevision);
         return contents is var (before, after) ? MemberDiff.ChangedMembers(before, after) : null;
     }
 
     private static (string Before, string After)? ReadBeforeAfter(
-        GitTransactionSource gitSource, string repoPath, string file, bool staged)
+        GitTransactionSource gitSource, string repoPath, string file, bool staged, string baseRevision)
     {
-        string? before = gitSource.GetFileContentAt(repoPath, "HEAD", file);
+        string? before = gitSource.GetFileContentAt(repoPath, baseRevision, file);
         string? after = staged
             ? gitSource.GetStagedFileContent(repoPath, file)
             : ReadWorkingTreeFile(repoPath, file);
-        return before is null || after is null ? null : (before, after);
+
+        // Identical content means "no visible edit" (e.g. the caller already
+        // committed its work), not "cosmetic edit" — unknown, never grounds
+        // for suppression.
+        return before is null || after is null || before == after ? null : (before, after);
     }
 
     private static string? ReadWorkingTreeFile(string repoPath, string file)

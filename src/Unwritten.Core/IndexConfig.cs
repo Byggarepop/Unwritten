@@ -32,4 +32,11 @@ public sealed record IndexConfig
 
     /// <summary>Facet path depth cap; deeper changes roll up to their ancestor at this depth.</summary>
     public int FacetMaxDepth { get; init; } = 3;
+
+    /// <summary>
+    /// Number of most-recent transactions training covered (0 = full history).
+    /// The engine never reads it — it is part of the training fingerprint, so a
+    /// window change invalidates a persisted index like any other training setting.
+    /// </summary>
+    public int HistoryWindow { get; init; }
 }
