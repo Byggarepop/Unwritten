@@ -89,6 +89,31 @@ public class RobustnessTests : IDisposable
     }
 
     [Fact]
+    public void FirstIndexBuildCreatesTheConfigTemplate()
+    {
+        _repo.Commit("a.txt");
+        _manager.GetUpToDate(_repo.Path);
+
+        string path = UnwrittenConfig.GetConfigPath(_repo.Path);
+        Assert.True(File.Exists(path));
+        Assert.Contains("memberLevel", File.ReadAllText(path)); // settings are discoverable
+
+        // Everything is commented out: the template pins nothing.
+        Assert.Equal(10, UnwrittenConfig.Load(_repo.Path).MinSupport);
+        Assert.False(UnwrittenConfig.Load(_repo.Path).MemberLevel);
+    }
+
+    [Fact]
+    public void ConfigTemplateNeverOverwritesAnExistingConfig()
+    {
+        WriteConfig("""{ "failConfidence": 0.9 }""");
+        _repo.Commit("a.txt");
+        _manager.GetUpToDate(_repo.Path);
+
+        Assert.Equal(0.9, UnwrittenConfig.Load(_repo.Path).FailConfidence);
+    }
+
+    [Fact]
     public void UnwrittenDirectoryIgnoresItself()
     {
         _repo.Commit("a.txt");

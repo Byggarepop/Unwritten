@@ -110,9 +110,15 @@ public static class HoleSuppression
 
         // Identical content means "no visible edit" (e.g. the caller already
         // committed its work), not "cosmetic edit" — unknown, never grounds
-        // for suppression.
-        return before is null || after is null || before == after ? null : (before, after);
+        // for suppression. Compared with normalized line endings: with
+        // core.autocrlf the working tree is CRLF while the blob is LF, and
+        // that difference alone must not defeat this guard.
+        return before is null || after is null || NormalizeEol(before) == NormalizeEol(after)
+            ? null
+            : (before, after);
     }
+
+    private static string NormalizeEol(string text) => text.Replace("\r\n", "\n");
 
     private static string? ReadWorkingTreeFile(string repoPath, string file)
     {
