@@ -16,19 +16,33 @@ their own edits for holes mid-session, and as a **CLI** for pre-commit hooks.
 One `dotnet tool execute`, an index in `.unwritten/`, no server, no subscription,
 no tokens.
 
+**Works on any language.** File-level rules only need git history, so hole
+detection works the same on Python, TypeScript, Go, or mixed repos. C# repos
+additionally get method-level rules ("you changed `CalculateFreight` but not
+its test") and cosmetic-edit filtering; JSON files get key-level noise
+filtering. Running the tool requires the [.NET SDK](https://dotnet.microsoft.com/download)
+(10+) — already present on any .NET dev machine — but the repos it analyzes
+can be anything.
+
 ## Quick start
 
 From your repo's root:
 
 ```bash
-# 1. Build the index from your git history
+# 1. Warm up the index (optional — every command builds it on first use and
+#    keeps it current by itself; this just makes the first query fast)
 dotnet tool execute Unwritten --yes -- reindex
 
 # 2. Register as an MCP server (Claude Code)
 claude mcp add unwritten -- dotnet tool execute Unwritten --yes -- mcp
+
+# 3. (Recommended) Make the check deterministic — a git pre-commit hook and a
+#    Claude Code Stop hook that feeds failing holes back to the agent:
+dotnet tool execute Unwritten --yes -- install-hook --git --claude-code
 ```
 
-That's it — your agent can now call `check_holes` after editing.
+That's it — your agent can now call `check_holes` after editing, and the hooks
+catch the cases where it forgets to.
 
 ## This is not a new idea — and that's the point
 
@@ -98,8 +112,9 @@ dotnet tool execute Unwritten --yes -- check --staged
 Everything before `--` is for the tool runner; everything after it is the
 Unwritten command line.
 
-Add `.unwritten/` to your `.gitignore` — the index is a local cache, rebuilt from
-history on demand.
+The index lives in `.unwritten/`, a local cache rebuilt from history on demand.
+The directory ships its own `.gitignore`, so nothing to add to yours. (To share
+`.unwritten/config.json` with your team, commit it with `git add -f`.)
 
 ### As an MCP server
 
@@ -144,9 +159,11 @@ CALL THIS WHEN:
 - You have made ANY code change in a git repo — modified a method,
   added a class, renamed something, edited config, created or
   deleted files — and are about to finish a task, commit, or hand
-  back to the user → check_holes with the changed files. Works at
-  member level too: "you changed CalculateFreight but not its
-  tests" — so call it even when only method bodies changed.
+  back to the user → check_holes with the changed files (or omit
+  files to auto-detect all uncommitted changes; pass baseRef =
+  the pre-work commit if you committed during the session).
+  Works at member level too: "you changed CalculateFreight but
+  not its tests" — so call it even when only method bodies changed.
 - You are planning a change and want to know which files or
   members usually accompany the one you're about to touch →
   expected_companions.
@@ -170,7 +187,7 @@ Tools exposed:
 
 | Tool | Purpose |
 |---|---|
-| `check_holes(files, repoPath, minConfidence=0.6)` | After editing, pass the files you touched; returns expected-but-absent files with evidence. |
+| `check_holes(repoPath, files?, minConfidence?, baseRef?)` | After editing, pass the files you touched — or omit `files` to auto-detect every uncommitted change. Returns expected-but-absent files with evidence, plus `checkedFiles` (how much history each input has: an empty result for a file with no history means "no data", not "all good"). Pass `baseRef` (the pre-work commit) when the session has already committed, so committed edits are still seen. |
 | `expected_companions(file, repoPath, top=10)` | Ranked co-change companions of a file, regardless of threshold — proactive context when opening a file. |
 | `explain_rule(fileA, fileB, repoPath)` | Full evidence for one rule: counts, confidence both directions, co-change commits, and recent commits where A changed alone (the exceptions). |
 | `stats(repoPath)` | Index health: indexed HEAD, transaction/entity/pair counts, index size, rule counts at floors 0.5/0.6/0.7/0.8. |
@@ -179,18 +196,43 @@ Tools exposed:
 ### As a CLI
 
 ```bash
-dotnet tool execute Unwritten --yes -- check --staged            # prints holes >= 0.6, exits 1 if any >= 0.7
+dotnet tool execute Unwritten --yes -- check                     # all uncommitted changes
+dotnet tool execute Unwritten --yes -- check --staged            # staged files (pre-commit hooks)
+dotnet tool execute Unwritten --yes -- check --base abc1234      # everything changed since that commit
+dotnet tool execute Unwritten --yes -- check src/Foo.cs src/Bar.cs    # an explicit file set
 dotnet tool execute Unwritten --yes -- check --staged --fail-at 0.8   # stricter gate
-dotnet tool execute Unwritten --yes -- check src/Foo.cs src/Bar.cs    # check an explicit file set
 ```
 
-The first call on a repository indexes its full history (seconds to a minute on
-large repos); afterwards only new commits are ingested, and queries are pure
-in-memory lookups.
+Holes at or above the report floor (0.6) are printed; the exit code is 1 when
+any hole reaches the fail floor (0.7). Checked files with no or too little
+history are called out with `note:` lines — silence from a file the index has
+never seen means "no data", not "no problems".
 
-### As a pre-commit hook
+The index is fully self-maintaining: the first call on a repository indexes its
+full history (seconds to a minute on large repos); afterwards only new commits
+are ingested, config changes are picked up automatically, and queries are pure
+in-memory lookups. You never need to run `reindex` yourself except after a
+git history rewrite.
 
-Plain git hook — create `.git/hooks/pre-commit` (no extension) with:
+### As hooks — deterministic checks
+
+Relying on an agent (or a human) to remember to run the check is the weakest
+link. `install-hook` makes it fire every time:
+
+```bash
+dotnet tool execute Unwritten --yes -- install-hook --git           # git pre-commit hook
+dotnet tool execute Unwritten --yes -- install-hook --claude-code   # Claude Code Stop hook
+```
+
+- **`--git`** writes `.git/hooks/pre-commit` (refusing to touch an existing
+  foreign hook unless `--force`).
+- **`--claude-code`** adds a [Stop hook](https://docs.claude.com/en/docs/claude-code/hooks)
+  to the repo's `.claude/settings.json`: whenever the agent finishes a turn
+  while an uncommitted change has a failing hole, the report is fed back to the
+  agent so it can fix or justify it. The hook fails open (never blocks on
+  infrastructure problems) and never re-blocks within the same turn.
+
+Manual pre-commit alternative — create `.git/hooks/pre-commit` (no extension) with:
 
 ```sh
 #!/bin/sh
@@ -246,9 +288,11 @@ All settings are optional; missing ones use the validated defaults:
 ```
 
 Floors take effect immediately. Training settings (`minSupport`,
-`maxTransactionSize`, `maxExamplesPerPair`) describe how the index is built, so
-they take effect on the next full rebuild — run `dotnet tool execute Unwritten --yes -- reindex` after changing
-them. Command-line flags override the config file.
+`maxTransactionSize`, `maxExamplesPerPair`, facet training settings) describe
+how the index is built — Unwritten detects when they change (member settings
+included) and rebuilds automatically on the next query, so no manual step is
+needed. `reindex` remains the tool for history rewrites. Command-line flags
+override the config file.
 
 ## How it works
 
@@ -282,19 +326,37 @@ files that participate in rules, so index build cost is unchanged for
 repos without JSON coupling. `explain_rule` exposes the per-key breakdown
 (`facetBreakdown`) whenever it exists.
 
-### Member-level rules for C# (opt-in)
+### Method-level rules for C# (opt-in)
 
-With `"memberLevel": true`, Unwritten builds a second index
-(`.unwritten/members.json`) where the entities are C# *members* —
-`Namespace.Type.Method/arity` — extracted by diffing each commit's changed
-`.cs` files syntactically (Roslyn, no compilation). `check_holes` then also
-reports **memberHoles**: companion methods that history couples to the
-members you actually changed, but which are absent from your edit. Member
-ids deliberately exclude the file path, so member identity survives file
-moves and renames. Because "changed" means *trivia-stripped syntax
-differs*, comment- and whitespace-only edits change no member — which also
-suppresses file-level holes for cosmetic C# edits (`suppressed: true`,
-CLI `--strict` overrides), whether or not member indexing is enabled.
+File-level rules can only say "you changed `OrderService.cs` but not
+`OrderServiceTests.cs`". With `"memberLevel": true`, Unwritten learns the same
+patterns one level deeper — per method: *"you changed `CalculateFreight` but
+not `CalculateFreight_AppliesSurcharge`"*. ("Member" is the C# umbrella term
+the config and JSON output use — methods, constructors, properties, fields —
+but in practice most rules are about methods.)
+
+**How it works.** For every commit in the history window, each changed `.cs`
+file is diffed *syntactically* (Roslyn, no compilation needed) to find which
+members actually changed. Those members form the commit's transaction in a
+second index (`.unwritten/members.json`), with ids like
+`Namespace.Type.Method/arity`, scored with the same Wilson statistics as
+files. `check_holes` then also reports **memberHoles**: companion methods that
+history couples to the methods you actually changed, but which are absent from
+your edit.
+
+**Why it helps:**
+
+- **Precision.** A file-level rule fires on *any* edit to the file. A
+  method-level rule fires only when the coupled method itself changed —
+  editing an unrelated helper in the same file raises no alarm, so warnings
+  are rarer and more trustworthy.
+- **Noise immunity.** "Changed" means the trivia-stripped syntax differs, so
+  comment- and whitespace-only edits change no member. This also suppresses
+  file-level holes for cosmetic C# edits (`suppressed: true`, CLI `--strict`
+  overrides) — whether or not member indexing is enabled.
+- **Survives refactoring.** Member ids deliberately exclude the file path, so
+  a method keeps its history when its file is moved or renamed — exactly where
+  file-level history resets to zero.
 
 Costs and caveats: the first member build parses every changed-file
 version in the history window (default: most recent 5,000 commits) —
@@ -317,9 +379,9 @@ Honesty section — known limitations of phase 1:
 - **Content-level exceptions cover JSON and C# only.** Other structured
   formats (YAML, TOML, XML) and other languages are treated at file level:
   any edit triggers the rule.
-- **Member-level rules are C#-only, opt-in, and support-hungry.** Repos
-  need members changed ≥10 times inside the history window before member
-  rules exist; member renames and same-arity overloads blur identity.
+- **Method-level (member) rules are C#-only, opt-in, and support-hungry.**
+  Repos need methods changed ≥10 times inside the history window before
+  method rules exist; method renames and same-arity overloads blur identity.
 - **"Filled later" validation caveat.** The empirical table above measures
   whether flagged holes were filled within 10 commits — a proxy for "the alert
   was right", not proof of causality. Some "unfilled" holes may still have been

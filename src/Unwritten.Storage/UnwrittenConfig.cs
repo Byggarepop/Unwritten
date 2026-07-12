@@ -3,6 +3,9 @@ using Unwritten.Core;
 
 namespace Unwritten.Storage;
 
+/// <summary>Thrown when <c>.unwritten/config.json</c> is malformed or contains invalid values.</summary>
+public sealed class ConfigException(string message) : Exception(message);
+
 /// <summary>
 /// Per-repository configuration from <c>.unwritten/config.json</c>. Missing file or
 /// missing properties fall back to the validated defaults. Training-related
@@ -72,8 +75,50 @@ public sealed record UnwrittenConfig
             return new UnwrittenConfig();
         }
 
-        return JsonSerializer.Deserialize<UnwrittenConfig>(File.ReadAllText(path), JsonOptions)
-            ?? new UnwrittenConfig();
+        UnwrittenConfig config;
+        try
+        {
+            config = JsonSerializer.Deserialize<UnwrittenConfig>(File.ReadAllText(path), JsonOptions)
+                ?? new UnwrittenConfig();
+        }
+        catch (JsonException ex)
+        {
+            throw new ConfigException($"{path} is not valid JSON: {ex.Message}");
+        }
+
+        config.Validate(path);
+        return config;
+    }
+
+    private void Validate(string path)
+    {
+        var problems = new List<string>();
+        void Require(bool ok, string problem)
+        {
+            if (!ok)
+            {
+                problems.Add(problem);
+            }
+        }
+
+        Require(MinSupport >= 1, "minSupport must be >= 1");
+        Require(MaxTransactionSize >= 1, "maxTransactionSize must be >= 1");
+        Require(DefaultMinConfidence is > 0 and <= 1, "defaultMinConfidence must be in (0, 1]");
+        Require(FailConfidence is > 0 and <= 1, "failConfidence must be in (0, 1]");
+        Require(MaxExamplesPerPair >= 1, "maxExamplesPerPair must be >= 1");
+        Require(FacetFloor is > 0 and <= 1, "facetFloor must be in (0, 1]");
+        Require(MinFacetSupport >= 1, "minFacetSupport must be >= 1");
+        Require(FacetCandidateFloor is > 0 and <= 1, "facetCandidateFloor must be in (0, 1]");
+        Require(MaxFacetsPerEntity >= 1, "maxFacetsPerEntity must be >= 1");
+        Require(FacetMaxDepth >= 1, "facetMaxDepth must be >= 1");
+        Require(MemberHistoryWindow >= 1, "memberHistoryWindow must be >= 1");
+        Require(MemberMinSupport >= 1, "memberMinSupport must be >= 1");
+        Require(MemberMaxTransactionSize >= 1, "memberMaxTransactionSize must be >= 1");
+
+        if (problems.Count > 0)
+        {
+            throw new ConfigException($"{path}: {string.Join("; ", problems)}");
+        }
     }
 
     public IndexConfig ToIndexConfig() => new()
@@ -96,5 +141,6 @@ public sealed record UnwrittenConfig
         MaxTransactionSize = MemberMaxTransactionSize,
         DefaultMinConfidence = DefaultMinConfidence,
         MaxExamplesPerPair = MaxExamplesPerPair,
+        HistoryWindow = MemberHistoryWindow,
     };
 }

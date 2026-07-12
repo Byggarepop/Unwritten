@@ -15,25 +15,77 @@ public sealed class UnwrittenTools(IndexManager indexManager, GitTransactionSour
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = true,
+        WriteIndented = false,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
+    /// <summary>Explicit floors below this are clamped — validation showed such alerts are ~90% noise.</summary>
+    private const double MinUsefulConfidence = 0.3;
+
     [McpServerTool(Name = "check_holes")]
-    [Description("Given the set of files just changed, flags files that history says are expected to change with them but are absent from the set. Call after editing, passing every file you touched. Each hole comes with evidence: co-change counts and example commits. Cosmetic edits (non-predictive JSON keys, comment-only C# changes) come back with suppressed=true plus the evidence. When member-level indexing is enabled, memberHoles reports absent companion METHODS/members of the members you actually changed.")]
+    [Description("Given the files just changed, flags files that history says are expected to change with them but are absent. Call after editing (or before finishing a task), passing every file you touched — or omit files to auto-detect all uncommitted changes. If you have committed work during this session, pass baseRef (the commit you started from) so committed edits are still seen. Each hole comes with evidence: co-change counts and example commits. checkedFiles reports how much history each input has: for a file with no or too little history an empty result means 'no data', NOT 'all good'. Cosmetic edits (non-predictive JSON keys, comment-only C# changes) come back with suppressed=true plus the evidence. When member-level indexing is enabled, memberHoles reports absent companion METHODS/members of the members you actually changed.")]
     public string CheckHoles(
-        [Description("Repo-relative paths of all files changed in this edit.")] string[] files,
-        [Description("Absolute path to the git repository root.")] string repoPath,
-        [Description("Wilson lower-bound confidence floor. Omit to use the repo's configured floor (default 0.6, the validated alert threshold).")] double? minConfidence = null)
+        [Description("Absolute path to the git repository (any path inside it works).")] string repoPath,
+        [Description("Repo-relative paths of the files changed in this edit. Omit or leave empty to auto-detect every uncommitted change (or every change since baseRef).")] string[]? files = null,
+        [Description("Wilson lower-bound confidence floor. Omit to use the repo's configured floor (default 0.6, the validated alert threshold). Values below 0.3 are clamped — they are noise.")] double? minConfidence = null,
+        [Description("Revision the edit is measured against (default HEAD). Pass the pre-work commit SHA when you have already committed during this session.")] string? baseRef = null)
     {
+        repoPath = indexManager.ResolveRepoRoot(repoPath);
+        string baseRevision = baseRef ?? "HEAD";
         var persisted = indexManager.GetUpToDate(repoPath);
+        var notes = new List<string>();
+
         double floor = minConfidence ?? persisted.Index.Config.DefaultMinConfidence;
-        var entities = files.Select(f => EntityPath.Normalize(repoPath, f)).ToArray();
+        if (minConfidence is not null && floor < MinUsefulConfidence)
+        {
+            notes.Add($"minConfidence {minConfidence} clamped to {MinUsefulConfidence} — validated: alerts below it are ~90% noise.");
+            floor = MinUsefulConfidence;
+        }
+
+        string[] inputs = files is { Length: > 0 }
+            ? files
+            : [.. gitSource.GetChangedFilesSince(repoPath, baseRevision)];
+        if (inputs.Length == 0)
+        {
+            return Serialize(new
+            {
+                holes = Array.Empty<object>(),
+                checkedFiles = Array.Empty<object>(),
+                minConfidence = floor,
+                notes = new[]
+                {
+                    baseRef is null
+                        ? "No uncommitted changes detected — nothing to check."
+                        : $"No changes since {baseRevision} detected — nothing to check.",
+                },
+            });
+        }
+
+        var entities = inputs.Select(f => EntityPath.Normalize(repoPath, f)).ToArray();
         var holes = RuleEngine.FindHoles(persisted.Index, entities, floor);
-        var annotated = HoleSuppression.Annotate(persisted.Index, gitSource, repoPath, holes, staged: false);
+        var annotated = HoleSuppression.Annotate(persisted.Index, gitSource, repoPath, holes, staged: false, baseRevision);
 
         var members = indexManager.GetMembersUpToDate(repoPath);
-        var memberReport = MemberHoleFinder.Find(members, gitSource, repoPath, entities, staged: false, floor);
+        var memberReport = MemberHoleFinder.Find(members, gitSource, repoPath, entities, staged: false, floor, baseRevision);
+
+        int minSupport = persisted.Index.Config.MinSupport;
+        var checkedFiles = entities.Select(e =>
+        {
+            int totalChanges = persisted.Index.GetEntityCount(e);
+            return new { file = e, totalChanges, canTriggerRules = totalChanges >= minSupport };
+        }).ToArray();
+
+        int unknown = checkedFiles.Count(f => f.totalChanges == 0);
+        int thin = checkedFiles.Count(f => f.totalChanges > 0 && !f.canTriggerRules);
+        if (unknown > 0)
+        {
+            notes.Add($"{unknown} checked file(s) have no history in the index (new file, or a path that does not match the repo-relative form?). No holes can be detected for them — an empty result there means 'no data', not 'all good'.");
+        }
+
+        if (thin > 0)
+        {
+            notes.Add($"{thin} checked file(s) have fewer than {minSupport} historical changes — too little history for rules to exist.");
+        }
 
         return Serialize(new
         {
@@ -49,16 +101,19 @@ public sealed class UnwrittenTools(IndexManager indexManager, GitTransactionSour
                 exampleCommits = h.ExampleTransactions.Select(e => new { sha = e.Id, subject = e.Label }),
             }),
             changedMembers = memberReport?.ChangedMembers,
-            checkedFiles = entities,
+            checkedFiles,
             minConfidence = floor,
+            baseRef,
+            notes = notes.Count > 0 ? notes : null,
         });
     }
 
     [McpServerTool(Name = "reindex")]
     [Description("Discards the existing index and rebuilds it from the repository's full history. Use after a history rewrite or after changing .unwritten/config.json training settings.")]
     public string Reindex(
-        [Description("Absolute path to the git repository root.")] string repoPath)
+        [Description("Absolute path to the git repository (any path inside it works).")] string repoPath)
     {
+        repoPath = indexManager.ResolveRepoRoot(repoPath);
         var persisted = indexManager.Rebuild(repoPath);
         return Serialize(StatsReport.Build(repoPath, persisted, indexManager.GetMembersUpToDate(repoPath)));
     }
@@ -66,8 +121,9 @@ public sealed class UnwrittenTools(IndexManager indexManager, GitTransactionSour
     [McpServerTool(Name = "stats")]
     [Description("Index health: indexed HEAD, transaction/entity/pair counts, index file size, and rule counts at confidence floors 0.5/0.6/0.7/0.8.")]
     public string Stats(
-        [Description("Absolute path to the git repository root.")] string repoPath)
+        [Description("Absolute path to the git repository (any path inside it works).")] string repoPath)
     {
+        repoPath = indexManager.ResolveRepoRoot(repoPath);
         var persisted = indexManager.GetUpToDate(repoPath);
         return Serialize(StatsReport.Build(repoPath, persisted, indexManager.GetMembersUpToDate(repoPath)));
     }
@@ -76,9 +132,11 @@ public sealed class UnwrittenTools(IndexManager indexManager, GitTransactionSour
     [Description("Ranked list of files that historically change together with the given file, regardless of alert threshold. Useful as proactive context when starting to edit a file. Also accepts a member id (e.g. MyNs.MyType.MyMethod/2) when member-level indexing is enabled.")]
     public string ExpectedCompanions(
         [Description("Repo-relative path of the file, or a member id like Namespace.Type.Method/arity.")] string file,
-        [Description("Absolute path to the git repository root.")] string repoPath,
+        [Description("Absolute path to the git repository (any path inside it works).")] string repoPath,
         [Description("Maximum number of companions to return.")] int top = 10)
     {
+        repoPath = indexManager.ResolveRepoRoot(repoPath);
+
         // Auto-detect member ids by lookup: if the member index knows this entity,
         // answer at member level; otherwise treat the input as a file path.
         var members = indexManager.GetMembersUpToDate(repoPath);
@@ -103,11 +161,12 @@ public sealed class UnwrittenTools(IndexManager indexManager, GitTransactionSour
 
         var persisted = indexManager.GetUpToDate(repoPath);
         string entity = EntityPath.Normalize(repoPath, file);
+        int totalChanges = persisted.Index.GetEntityCount(entity);
         var companions = RuleEngine.GetCompanions(persisted.Index, entity, top);
         return Serialize(new
         {
             file = entity,
-            totalChanges = persisted.Index.GetEntityCount(entity),
+            totalChanges,
             companions = companions.Select(c => new
             {
                 c.Companion,
@@ -115,6 +174,9 @@ public sealed class UnwrittenTools(IndexManager indexManager, GitTransactionSour
                 c.CoChanges,
                 c.TotalChanges,
             }),
+            note = totalChanges == 0
+                ? "This file has no history in the index — new file, or a path that does not match the repo-relative form."
+                : null,
         });
     }
 
@@ -123,8 +185,10 @@ public sealed class UnwrittenTools(IndexManager indexManager, GitTransactionSour
     public string ExplainRule(
         [Description("Repo-relative path of the trigger file.")] string fileA,
         [Description("Repo-relative path of the expected companion file.")] string fileB,
-        [Description("Absolute path to the git repository root.")] string repoPath)
+        [Description("Absolute path to the git repository (any path inside it works).")] string repoPath)
     {
+        repoPath = indexManager.ResolveRepoRoot(repoPath);
+
         // Member-level explanation when both inputs are known member ids.
         var members = indexManager.GetMembersUpToDate(repoPath);
         if (members is not null &&

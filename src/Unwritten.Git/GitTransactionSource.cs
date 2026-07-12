@@ -20,6 +20,41 @@ public sealed class GitTransactionSource(GitRunner runner)
     public string GetHeadSha(string repoPath) =>
         runner.Run(repoPath, "rev-parse", "HEAD").Trim();
 
+    /// <summary>
+    /// Absolute path of the root of the repository containing <paramref name="path"/>
+    /// (worktree-aware). Callers pass subdirectories all the time; entity ids are
+    /// root-relative, so everything must be anchored here.
+    /// </summary>
+    public string GetRepositoryRoot(string path)
+    {
+        try
+        {
+            return Path.GetFullPath(runner.Run(path, "rev-parse", "--show-toplevel").Trim());
+        }
+        catch (GitException)
+        {
+            throw new GitException($"'{path}' is not inside a git repository.");
+        }
+    }
+
+    /// <summary>
+    /// Repo-relative paths of files that differ from <paramref name="baseRevision"/>
+    /// (staged and unstaged), plus untracked files. The default base HEAD means
+    /// "everything currently uncommitted".
+    /// </summary>
+    public IReadOnlyList<string> GetChangedFilesSince(string repoPath, string baseRevision = "HEAD")
+    {
+        var changed = runner.Run(repoPath, "diff", "--name-only", baseRevision)
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var untracked = runner.Run(repoPath, "ls-files", "--others", "--exclude-standard")
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return [.. changed.Concat(untracked).Distinct(StringComparer.Ordinal)];
+    }
+
+    /// <summary>Absolute path of the directory git runs hooks from (respects core.hooksPath).</summary>
+    public string GetHooksPath(string repoPath) =>
+        Path.GetFullPath(Path.Combine(repoPath, runner.Run(repoPath, "rev-parse", "--git-path", "hooks").Trim()));
+
     public bool IsGitRepository(string repoPath)
     {
         try

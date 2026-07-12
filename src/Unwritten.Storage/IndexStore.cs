@@ -21,24 +21,48 @@ public static class IndexStore
     public static string GetMemberIndexPath(string repoPath) =>
         Path.Combine(repoPath, ".unwritten", "members.json");
 
-    public static PersistedIndex? Load(string repoPath) => LoadFrom(GetIndexPath(repoPath));
+    /// <summary>
+    /// Loads the persisted index, or null when it is absent, corrupt, a different
+    /// schema version, or (when <paramref name="current"/> is given) was trained
+    /// with different training settings — null always means "rebuild".
+    /// When <paramref name="current"/> is compatible it becomes the loaded index's
+    /// config, so query-time floors edited in config.json apply without a rebuild.
+    /// </summary>
+    public static PersistedIndex? Load(string repoPath, IndexConfig? current = null) =>
+        LoadFrom(GetIndexPath(repoPath), current);
 
-    public static PersistedIndex? LoadMembers(string repoPath) => LoadFrom(GetMemberIndexPath(repoPath));
+    public static PersistedIndex? LoadMembers(string repoPath, IndexConfig? current = null) =>
+        LoadFrom(GetMemberIndexPath(repoPath), current);
 
-    private static PersistedIndex? LoadFrom(string path)
+    private static PersistedIndex? LoadFrom(string path, IndexConfig? current)
     {
         if (!File.Exists(path))
         {
             return null;
         }
 
-        var document = JsonSerializer.Deserialize<IndexDocument>(File.ReadAllText(path), JsonOptions);
+        IndexDocument? document;
+        try
+        {
+            document = JsonSerializer.Deserialize<IndexDocument>(File.ReadAllText(path), JsonOptions);
+        }
+        catch (JsonException)
+        {
+            // Corrupt or hand-edited index — treat as absent and let callers rebuild.
+            return null;
+        }
+
         if (document is null || document.Version != 1)
         {
             return null;
         }
 
-        var config = new IndexConfig
+        if (current is not null && !TrainingCompatible(document.Config, current))
+        {
+            return null;
+        }
+
+        var config = current ?? new IndexConfig
         {
             MinSupport = document.Config.MinSupport,
             MaxTransactionSize = document.Config.MaxTransactionSize,
@@ -49,6 +73,7 @@ public static class IndexStore
             FacetCandidateFloor = document.Config.FacetCandidateFloor,
             MaxFacetsPerEntity = document.Config.MaxFacetsPerEntity,
             FacetMaxDepth = document.Config.FacetMaxDepth,
+            HistoryWindow = document.Config.HistoryWindow,
         };
 
         var snapshot = new IndexSnapshot(
@@ -67,6 +92,20 @@ public static class IndexStore
 
         return new PersistedIndex(CoChangeIndex.FromSnapshot(snapshot), document.Source.HeadSha);
     }
+
+    /// <summary>
+    /// True when the settings that shape what gets counted during training match.
+    /// Query-time floors (defaultMinConfidence, facetFloor, minFacetSupport) are
+    /// deliberately excluded — they apply to an existing index without a rebuild.
+    /// </summary>
+    private static bool TrainingCompatible(ConfigDocument stored, IndexConfig current) =>
+        stored.MinSupport == current.MinSupport &&
+        stored.MaxTransactionSize == current.MaxTransactionSize &&
+        stored.MaxExamplesPerPair == current.MaxExamplesPerPair &&
+        stored.FacetCandidateFloor == current.FacetCandidateFloor &&
+        stored.MaxFacetsPerEntity == current.MaxFacetsPerEntity &&
+        stored.FacetMaxDepth == current.FacetMaxDepth &&
+        stored.HistoryWindow == current.HistoryWindow;
 
     public static void Save(string repoPath, CoChangeIndex index, string headSha) =>
         SaveTo(GetIndexPath(repoPath), "git", index, headSha);
@@ -96,6 +135,7 @@ public static class IndexStore
                 FacetCandidateFloor = snapshot.Config.FacetCandidateFloor,
                 MaxFacetsPerEntity = snapshot.Config.MaxFacetsPerEntity,
                 FacetMaxDepth = snapshot.Config.FacetMaxDepth,
+                HistoryWindow = snapshot.Config.HistoryWindow,
             },
             TransactionCount = snapshot.TransactionCount,
             Entities = snapshot.EntityCounts.ToDictionary(
@@ -136,9 +176,27 @@ public static class IndexStore
             kv => kv.Key, kv => kv.Value.ToList());
         document.EntityLocations = new Dictionary<string, string>(snapshot.EntityLocations);
 
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        string tempPath = path + ".tmp";
+        string directory = Path.GetDirectoryName(path)!;
+        Directory.CreateDirectory(directory);
+        EnsureSelfGitignore(directory);
+
+        // Unique temp name: an MCP server and a pre-commit hook can save concurrently.
+        string tempPath = Path.Combine(directory, Path.GetRandomFileName() + ".tmp");
         File.WriteAllText(tempPath, JsonSerializer.Serialize(document, JsonOptions));
         File.Move(tempPath, path, overwrite: true);
+    }
+
+    /// <summary>
+    /// Makes <c>.unwritten/</c> ignore itself entirely so users never have to edit
+    /// their root .gitignore and git status stays clean. Teams that want to share
+    /// config.json can still commit it with <c>git add -f</c>.
+    /// </summary>
+    private static void EnsureSelfGitignore(string directory)
+    {
+        string gitignorePath = Path.Combine(directory, ".gitignore");
+        if (!File.Exists(gitignorePath))
+        {
+            File.WriteAllText(gitignorePath, "*\n");
+        }
     }
 }

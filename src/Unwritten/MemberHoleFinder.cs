@@ -21,7 +21,8 @@ public static class MemberHoleFinder
         string repoPath,
         IEnumerable<string> entities,
         bool staged,
-        double minConfidence)
+        double minConfidence,
+        string baseRevision = "HEAD")
     {
         if (members is null)
         {
@@ -31,7 +32,7 @@ public static class MemberHoleFinder
         var changed = new HashSet<string>(StringComparer.Ordinal);
         foreach (var file in entities.Where(MemberTrainer.IsEligibleCsFile))
         {
-            var changedInFile = HoleSuppression.GetChangedMembers(gitSource, repoPath, file, staged);
+            var changedInFile = HoleSuppression.GetChangedMembers(gitSource, repoPath, file, staged, baseRevision);
             if (changedInFile is not null)
             {
                 changed.UnionWith(changedInFile);
