@@ -108,6 +108,19 @@ public class IgnoreRuleTests : IDisposable
     }
 
     [Fact]
+    public void FailingHoleSpellsOutTheExactDecisionCommands()
+    {
+        BuildStrongCouplingWithHole();
+
+        int exitCode = RunCheck(out string output, "api.txt");
+
+        Assert.Equal(1, exitCode);
+        Assert.Contains("Your decision, per hole:", output);
+        Assert.Contains("git commit --no-verify", output);
+        Assert.Contains("ignore api.txt api.contract.txt --for 30", output);
+    }
+
+    [Fact]
     public void RemovingAnUnknownIgnoreSaysSo()
     {
         BuildStrongCouplingWithHole();

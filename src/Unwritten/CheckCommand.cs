@@ -178,14 +178,33 @@ public static class CheckCommand
         PrintSuppressed(output, suppressed);
         PrintSuppressed(output, ignoredMemberHoles);
 
-        bool failing = active.Any(a => a.Hole.Confidence >= failAt) ||
-            memberHoles.Any(h => h.Confidence >= failAt);
+        var failingFileHoles = active.Where(a => a.Hole.Confidence >= failAt).Select(a => a.Hole).ToList();
+        var failingMemberHoles = memberHoles.Where(h => h.Confidence >= failAt).ToList();
+        bool failing = failingFileHoles.Count > 0 || failingMemberHoles.Count > 0;
         if (failing)
         {
             output.WriteLine(Inv($"FAIL: at least one hole at confidence >= {failAt:0.00}."));
+            PrintDecisionGuide(output, [.. failingFileHoles, .. failingMemberHoles]);
         }
 
         return failing ? 1 : 0;
+    }
+
+    /// <summary>
+    /// The exact decision, spelled out per failing hole — the user (possibly via
+    /// an agent relaying this verbatim) should never have to construct a command.
+    /// </summary>
+    private static void PrintDecisionGuide(TextWriter output, IReadOnlyList<HoleResult> failingHoles)
+    {
+        output.WriteLine();
+        output.WriteLine("Your decision, per hole:");
+        output.WriteLine("  1. Real omission            -> make the expected companion change too.");
+        output.WriteLine("  2. Fine this one time       -> git commit --no-verify");
+        output.WriteLine("  3. Rule is no longer valid  -> mute it for the next 30 trigger changes:");
+        foreach (var hole in failingHoles.DistinctBy(h => (h.Trigger, h.Hole)))
+        {
+            output.WriteLine($"       dotnet tool execute Unwritten --yes -- ignore {hole.Trigger} {hole.Hole} --for 30");
+        }
     }
 
     /// <summary>

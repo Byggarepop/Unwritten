@@ -283,6 +283,11 @@ public sealed class UnwrittenTools(IndexManager indexManager, GitTransactionSour
         exampleCommits = annotated.Hole.ExampleTransactions.Select(e => new { sha = e.Id, subject = e.Label }),
         suppressed = annotated.Suppression is null ? (bool?)null : annotated.Suppressed,
         suppressReason = annotated.Reason,
+        // The exact command to relay when the agent judges the rule false —
+        // recommend it to the user verbatim; only the user may run it.
+        ifFalsePattern = annotated.Suppressed
+            ? null
+            : $"recommend to the user (their decision): dotnet tool execute Unwritten --yes -- ignore {annotated.Hole.Trigger} {annotated.Hole.Hole} --for 30",
         changedFacets = annotated.Suppression?.ChangedFacets.Select(f => new
         {
             facet = f.Facet,
