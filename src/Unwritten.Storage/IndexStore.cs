@@ -191,7 +191,7 @@ public static class IndexStore
     /// their root .gitignore and git status stays clean. Teams that want to share
     /// config.json can still commit it with <c>git add -f</c>.
     /// </summary>
-    private static void EnsureSelfGitignore(string directory)
+    internal static void EnsureSelfGitignore(string directory)
     {
         string gitignorePath = Path.Combine(directory, ".gitignore");
         if (!File.Exists(gitignorePath))

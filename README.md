@@ -262,7 +262,10 @@ With [Husky](https://typicode.github.io/husky/): `echo "dotnet tool execute Unwr
 
 ### Configuration — `.unwritten/config.json`
 
-All settings are optional; missing ones use the validated defaults:
+The first index build drops a fully commented template at
+`.unwritten/config.json`, so the settings are discoverable right where they
+live — uncomment a line to change it. All settings are optional; missing ones
+use the validated defaults:
 
 ```jsonc
 {

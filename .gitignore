@@ -3,3 +3,4 @@ obj/
 .unwritten/
 *.user
 nupkg/
+.claude/settings.json

@@ -38,6 +38,8 @@ public sealed class IndexManager(GitTransactionSource source)
     public PersistedIndex GetUpToDate(string repoPath)
     {
         repoPath = ResolveRepoRoot(repoPath);
+        // Before the stamp, so the template's write time IS the baseline stamp.
+        UnwrittenConfig.EnsureDefaultFile(repoPath);
         long stamp = ConfigStamp(repoPath);
 
         // Hot path: HEAD resolved from .git files, config freshness from one file
@@ -89,6 +91,7 @@ public sealed class IndexManager(GitTransactionSource source)
     public PersistedIndex Rebuild(string repoPath)
     {
         repoPath = ResolveRepoRoot(repoPath);
+        UnwrittenConfig.EnsureDefaultFile(repoPath);
         long stamp = ConfigStamp(repoPath);
         var config = UnwrittenConfig.Load(repoPath);
 
@@ -113,6 +116,7 @@ public sealed class IndexManager(GitTransactionSource source)
     public PersistedIndex? GetMembersUpToDate(string repoPath)
     {
         repoPath = ResolveRepoRoot(repoPath);
+        UnwrittenConfig.EnsureDefaultFile(repoPath);
         var config = UnwrittenConfig.Load(repoPath);
         if (!config.MemberLevel)
         {

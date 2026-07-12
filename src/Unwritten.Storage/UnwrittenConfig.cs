@@ -64,8 +64,60 @@ public sealed record UnwrittenConfig
     /// <summary>Commits changing more members than this are excluded from member training.</summary>
     public int MemberMaxTransactionSize { get; init; } = 50;
 
+    /// <summary>
+    /// Commented template written on first index build so the settings are
+    /// discoverable in place. Every value is commented out on purpose: the file
+    /// pins nothing, so improved defaults in future versions still apply.
+    /// </summary>
+    private const string DefaultTemplate = """
+        // Unwritten per-repository configuration.
+        // All settings are optional; missing ones use the validated defaults shown.
+        // Floors take effect immediately; training settings trigger an automatic
+        // rebuild on the next query. See the README for what each setting means.
+        {
+          // "minSupport": 10,            // min changes of the trigger file before rules exist
+          // "maxTransactionSize": 30,    // commits touching more files are excluded from training
+          // "defaultMinConfidence": 0.6, // alert floor (check_holes + CLI report floor)
+          // "failConfidence": 0.7,       // CLI: exit 1 when a hole reaches this
+          // "maxExamplesPerPair": 10,    // evidence commits kept per file pair
+
+          // Content-aware exceptions (JSON trigger files):
+          // "facetFloor": 0.6,           // Wilson floor for a key to count as predictive
+          // "minFacetSupport": 5,        // min changes of a key before it can be classified
+          // "facetCandidateFloor": 0.5,  // file-level confidence from which keys get trained
+          // "maxFacetsPerEntity": 64,    // beyond this the file is key-untrackable (fail open)
+          // "facetMaxDepth": 3,          // key-path depth cap (deeper rolls up)
+
+          // Method-level indexing (C#/Roslyn), OFF by default:
+          // "memberLevel": false,        // enable method->method rules (first build costs seconds-to-minutes)
+          // "memberHistoryWindow": 5000, // member training covers this many most-recent commits
+          // "memberMinSupport": 10,      // min changes of a trigger method before method rules exist
+          // "memberMaxTransactionSize": 50 // commits changing more members are excluded (refactor noise)
+        }
+
+        """;
+
     public static string GetConfigPath(string repoPath) =>
         Path.Combine(repoPath, ".unwritten", "config.json");
+
+    /// <summary>
+    /// Writes the commented default template to <c>.unwritten/config.json</c> if
+    /// no config exists yet (never overwrites), so users find the settings where
+    /// they live instead of in the README.
+    /// </summary>
+    public static void EnsureDefaultFile(string repoPath)
+    {
+        string path = GetConfigPath(repoPath);
+        if (File.Exists(path))
+        {
+            return;
+        }
+
+        string directory = Path.GetDirectoryName(path)!;
+        Directory.CreateDirectory(directory);
+        IndexStore.EnsureSelfGitignore(directory);
+        File.WriteAllText(path, DefaultTemplate);
+    }
 
     public static UnwrittenConfig Load(string repoPath)
     {

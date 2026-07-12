@@ -31,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `reindex` remains for history rewrites. Existing member indexes are rebuilt
   once (the history window is now part of the persisted training fingerprint).
 - `.unwritten/` now writes its own `.gitignore` — no root .gitignore edit needed.
+- First index build creates `.unwritten/config.json` as a fully commented
+  template: every setting is discoverable in place, and nothing is pinned, so
+  future default improvements still apply.
 - Config validation with clear errors (invalid JSON or out-of-range values in
   `.unwritten/config.json` no longer crash with a stack trace).
 - CLI: `--version`, `--help`/`-h` (also for `check`), friendly error for
@@ -52,6 +55,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   crashing every subsequent command.
 - `git cat-file --batch` stdin is now UTF-8, so non-ASCII file paths no longer
   silently drop out of member-level training on Windows.
+- The "no visible edit" guard now compares content with normalized line
+  endings: with `core.autocrlf` the working tree (CRLF) never matched the blob
+  (LF) byte-for-byte, which re-enabled the cosmetic-suppression false positive
+  on Windows.
 - Index saves use a unique temp file name — concurrent saves (MCP server +
   pre-commit hook) can no longer collide.
 
