@@ -283,6 +283,10 @@ dropped — and `check --strict` overrides them. Ignores live in
 
 There is deliberately no MCP tool for creating ignores: muting a warning is a
 human judgment, not something a coding agent should do to its own findings.
+The loop is still closed, though — the `check_holes`/`explain_rule` tool
+descriptions and the Stop-hook feedback instruct the agent that when it judges
+a rule persistently false, it must say so and point you at `unwritten ignore`,
+so the decision reaches you instead of dying in the agent's transcript.
 
 ### Configuration — `.unwritten/config.json`
 
