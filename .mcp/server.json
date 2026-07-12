@@ -5,6 +5,23 @@
   "title": "Unwritten",
   "version": "0.1.0",
   "websiteUrl": "https://github.com/Byggarepop/Unwritten",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/Byggarepop/Unwritten/main/img/unwritten-steps-32.png",
+      "sizes": ["32x32"],
+      "mimeType": "image/png"
+    },
+    {
+      "src": "https://raw.githubusercontent.com/Byggarepop/Unwritten/main/img/unwritten-steps-128.png",
+      "sizes": ["128x128"],
+      "mimeType": "image/png"
+    },
+    {
+      "src": "https://raw.githubusercontent.com/Byggarepop/Unwritten/main/img/unwritten-steps-512.png",
+      "sizes": ["512x512"],
+      "mimeType": "image/png"
+    }
+  ],
   "repository": {
     "url": "https://github.com/Byggarepop/Unwritten",
     "source": "github"

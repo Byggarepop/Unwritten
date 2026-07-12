@@ -1,5 +1,7 @@
 <!-- mcp-name: io.github.Byggarepop/unwritten -->
 
+![Unwritten logo](https://raw.githubusercontent.com/Byggarepop/Unwritten/main/img/unwritten-steps-128.png)
+
 # Unwritten
 
 **The free, agent-native slice of change coupling.** Unwritten learns from your git
