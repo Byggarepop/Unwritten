@@ -116,6 +116,7 @@ public class IgnoreRuleTests : IDisposable
 
         Assert.Equal(1, exitCode);
         Assert.Contains("Your decision, per hole:", output);
+        Assert.Contains("api.contract.txt   (usually changes together with api.txt)", output);
         Assert.Contains("git commit --no-verify", output);
         Assert.Contains("ignore api.txt api.contract.txt --for 30", output);
     }

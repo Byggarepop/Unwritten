@@ -196,12 +196,20 @@ public static class CheckCommand
     /// </summary>
     private static void PrintDecisionGuide(TextWriter output, IReadOnlyList<HoleResult> failingHoles)
     {
+        var holes = failingHoles.DistinctBy(h => (h.Trigger, h.Hole)).ToList();
+
         output.WriteLine();
         output.WriteLine("Your decision, per hole:");
-        output.WriteLine("  1. Real omission            -> make the expected companion change too.");
-        output.WriteLine("  2. Fine this one time       -> git commit --no-verify");
-        output.WriteLine("  3. Rule is no longer valid  -> mute it for the next 30 trigger changes:");
-        foreach (var hole in failingHoles.DistinctBy(h => (h.Trigger, h.Hole)))
+        output.WriteLine("  1. The warning is right — you forgot this file. Update it and include it in this commit:");
+        foreach (var hole in holes)
+        {
+            output.WriteLine($"       {hole.Hole}   (usually changes together with {hole.Trigger})");
+        }
+
+        output.WriteLine("  2. Not needed for THIS commit, but the rule is valid — bypass once:");
+        output.WriteLine("       git commit --no-verify");
+        output.WriteLine("  3. The rule itself is no longer valid — mute it for the next 30 changes of the trigger:");
+        foreach (var hole in holes)
         {
             output.WriteLine($"       dotnet tool execute Unwritten --yes -- ignore {hole.Trigger} {hole.Hole} --for 30");
         }
