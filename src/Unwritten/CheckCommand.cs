@@ -206,12 +206,20 @@ public static class CheckCommand
             output.WriteLine($"       {hole.Hole}   (usually changes together with {hole.Trigger})");
         }
 
-        output.WriteLine("  2. Not needed for THIS commit, but the rule is valid — bypass once:");
+        output.WriteLine("  2. Not needed for THIS commit, but the rule is valid — bypass once");
+        output.WriteLine("       (note: skips ALL pre-commit hooks and every hole above at once):");
         output.WriteLine("       git commit --no-verify");
         output.WriteLine("  3. The rule itself is no longer valid — mute it for the next 30 changes of the trigger:");
         foreach (var hole in holes)
         {
             output.WriteLine($"       dotnet tool execute Unwritten --yes -- ignore {hole.Trigger} {hole.Hole} --for 30");
+        }
+
+        if (holes.Count > 1)
+        {
+            output.WriteLine();
+            output.WriteLine("  Different decisions for different holes? Fix and/or mute those first,");
+            output.WriteLine("  then retry the commit — only if legitimate one-time holes remain, use --no-verify.");
         }
     }
 
