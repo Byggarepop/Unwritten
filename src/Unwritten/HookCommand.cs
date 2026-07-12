@@ -102,6 +102,7 @@ public static class HookCommand
             error.WriteLine("Unwritten found likely-missing companion changes in this session's edits:");
             error.WriteLine(buffer.ToString());
             error.WriteLine("Fix each hole or state briefly why it does not apply here (the evidence above and the explain_rule tool can help you judge).");
+            error.WriteLine("If you judge a rule to be a persistently false pattern, tell the user — they can mute it with 'unwritten ignore <trigger> <hole> --for <n>'. That decision is theirs, not yours.");
             return 2;
         }
         catch (Exception)

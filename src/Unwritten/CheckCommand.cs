@@ -113,17 +113,27 @@ public static class CheckCommand
         var holes = RuleEngine.FindHoles(persisted.Index, entities, minConfidence);
         var annotated = HoleSuppression.Annotate(persisted.Index, gitSource, repoPath, holes, staged, baseRevision);
 
+        var ignores = IgnoreStore.Load(repoPath);
+        annotated = IgnoreFilter.Apply(persisted.Index, annotated, ignores);
+
         var members = indexManager.GetMembersUpToDate(repoPath);
         var memberReport = MemberHoleFinder.Find(members, gitSource, repoPath, entities, staged, minConfidence, baseRevision);
 
         var active = annotated.Where(a => !a.Suppressed || strict).ToList();
         var suppressed = annotated.Where(a => a.Suppressed && !strict).ToList();
-        var memberHoles = memberReport?.Holes ?? [];
+
+        IReadOnlyList<HoleResult> memberHoles = memberReport?.Holes ?? [];
+        IReadOnlyList<AnnotatedHole> ignoredMemberHoles = [];
+        if (!strict && members is not null && memberHoles.Count > 0)
+        {
+            (memberHoles, ignoredMemberHoles) = IgnoreFilter.SplitMemberHoles(members.Index, memberHoles, ignores);
+        }
 
         if (active.Count == 0 && memberHoles.Count == 0)
         {
             output.WriteLine(Inv($"No holes at confidence >= {minConfidence:0.00} for {entities.Length} file(s)."));
             PrintSuppressed(output, suppressed);
+            PrintSuppressed(output, ignoredMemberHoles);
             return 0;
         }
 
@@ -166,15 +176,51 @@ public static class CheckCommand
         }
 
         PrintSuppressed(output, suppressed);
+        PrintSuppressed(output, ignoredMemberHoles);
 
-        bool failing = active.Any(a => a.Hole.Confidence >= failAt) ||
-            memberHoles.Any(h => h.Confidence >= failAt);
+        var failingFileHoles = active.Where(a => a.Hole.Confidence >= failAt).Select(a => a.Hole).ToList();
+        var failingMemberHoles = memberHoles.Where(h => h.Confidence >= failAt).ToList();
+        bool failing = failingFileHoles.Count > 0 || failingMemberHoles.Count > 0;
         if (failing)
         {
             output.WriteLine(Inv($"FAIL: at least one hole at confidence >= {failAt:0.00}."));
+            PrintDecisionGuide(output, [.. failingFileHoles, .. failingMemberHoles]);
         }
 
         return failing ? 1 : 0;
+    }
+
+    /// <summary>
+    /// The exact decision, spelled out per failing hole — the user (possibly via
+    /// an agent relaying this verbatim) should never have to construct a command.
+    /// </summary>
+    private static void PrintDecisionGuide(TextWriter output, IReadOnlyList<HoleResult> failingHoles)
+    {
+        var holes = failingHoles.DistinctBy(h => (h.Trigger, h.Hole)).ToList();
+
+        output.WriteLine();
+        output.WriteLine("Your decision, per hole:");
+        output.WriteLine("  1. The warning is right — you forgot this file. Update it and include it in this commit:");
+        foreach (var hole in holes)
+        {
+            output.WriteLine($"       {hole.Hole}   (usually changes together with {hole.Trigger})");
+        }
+
+        output.WriteLine("  2. Not needed for THIS commit, but the rule is valid — bypass once");
+        output.WriteLine("       (note: skips ALL pre-commit hooks and every hole above at once):");
+        output.WriteLine("       git commit --no-verify");
+        output.WriteLine("  3. The rule itself is no longer valid — mute it for the next 30 changes of the trigger:");
+        foreach (var hole in holes)
+        {
+            output.WriteLine($"       dotnet tool execute Unwritten --yes -- ignore {hole.Trigger} {hole.Hole} --for 30");
+        }
+
+        if (holes.Count > 1)
+        {
+            output.WriteLine();
+            output.WriteLine("  Different decisions for different holes? Fix and/or mute those first,");
+            output.WriteLine("  then retry the commit — only if legitimate one-time holes remain, use --no-verify.");
+        }
     }
 
     /// <summary>

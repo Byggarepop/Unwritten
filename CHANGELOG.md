@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`unwritten ignore <trigger> <hole> --for <n>`** — bounded mute for a
+  persistently false rule. Expires after the trigger has changed `n` more
+  times (default 30; those are the commits that erode or re-confirm the rule),
+  shows as `suppressed` with the remaining budget rather than disappearing,
+  is overridden by `check --strict`, and lives in machine-managed
+  `.unwritten/ignores.json`. `--list` / `--remove` manage entries; expired
+  entries are pruned automatically. Deliberately CLI-only — no MCP tool, so
+  agents cannot mute their own warnings. Permanent ignores do not exist by
+  design: unbounded mutes go stale and eventually hide real omissions.
+
 ## [0.3.0] - 2026-07-12
 
 ### Added

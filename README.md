@@ -101,12 +101,11 @@ The pattern is clear: below 0.6 the warnings are mostly noise, above 0.6 they qu
 
 ## Use
 
-No install step — `dotnet tool execute` (or its alias `dnx`) downloads the tool
-on first use and runs it:
+No install step — `dotnet tool execute` downloads the tool on first use and
+runs it (the shorter alias `dnx` works too, but examples here spell it out):
 
 ```bash
 dotnet tool execute Unwritten --yes -- check --staged
-# dnx Unwritten --yes -- check --staged   works too
 ```
 
 Everything before `--` is for the tool runner; everything after it is the
@@ -259,6 +258,35 @@ repos:
 ```
 
 With [Husky](https://typicode.github.io/husky/): `echo "dotnet tool execute Unwritten --yes -- check --staged" > .husky/pre-commit`.
+
+### Muting a false rule — `unwritten ignore`
+
+Sometimes a high-confidence rule is simply wrong for your situation and keeps
+blocking commits. Content-aware suppression already absorbs cosmetic C# and
+JSON edits automatically, and `git commit --no-verify` bypasses a single
+commit — but for a *persistently* false pairing, mute it:
+
+```bash
+dotnet tool execute Unwritten --yes -- ignore docs/api.md src/openapi.json --for 30 --note "generated separately now"
+dotnet tool execute Unwritten --yes -- ignore --list
+dotnet tool execute Unwritten --yes -- ignore --remove docs/api.md src/openapi.json
+```
+
+Ignores are **bounded by design** — permanent mutes go stale and one day hide a
+real omission. An ignore expires after the trigger has changed `--for` more
+times (default 30): those are exactly the commits that either erode the false
+rule (each trigger-alone commit lowers its confidence, so it often dies
+naturally before the mute expires) or prove the coupling is real again. Muted
+holes still appear as `suppressed` with their remaining budget — never silently
+dropped — and `check --strict` overrides them. Ignores live in
+`.unwritten/ignores.json` (machine-managed; keep your hands in `config.json`).
+
+There is deliberately no MCP tool for creating ignores: muting a warning is a
+human judgment, not something a coding agent should do to its own findings.
+The loop is still closed, though — the `check_holes`/`explain_rule` tool
+descriptions and the Stop-hook feedback instruct the agent that when it judges
+a rule persistently false, it must say so and point you at `unwritten ignore`,
+so the decision reaches you instead of dying in the agent's transcript.
 
 ### Configuration — `.unwritten/config.json`
 

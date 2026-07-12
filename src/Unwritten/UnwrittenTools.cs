@@ -23,7 +23,7 @@ public sealed class UnwrittenTools(IndexManager indexManager, GitTransactionSour
     private const double MinUsefulConfidence = 0.3;
 
     [McpServerTool(Name = "check_holes")]
-    [Description("Given the files just changed, flags files that history says are expected to change with them but are absent. Call after editing (or before finishing a task), passing every file you touched — or omit files to auto-detect all uncommitted changes. If you have committed work during this session, pass baseRef (the commit you started from) so committed edits are still seen. Each hole comes with evidence: co-change counts and example commits. checkedFiles reports how much history each input has: for a file with no or too little history an empty result means 'no data', NOT 'all good'. Cosmetic edits (non-predictive JSON keys, comment-only C# changes) come back with suppressed=true plus the evidence. When member-level indexing is enabled, memberHoles reports absent companion METHODS/members of the members you actually changed.")]
+    [Description("Given the files just changed, flags files that history says are expected to change with them but are absent. Call after editing (or before finishing a task), passing every file you touched — or omit files to auto-detect all uncommitted changes. If you have committed work during this session, pass baseRef (the commit you started from) so committed edits are still seen. Each hole comes with evidence: co-change counts and example commits. checkedFiles reports how much history each input has: for a file with no or too little history an empty result means 'no data', NOT 'all good'. Cosmetic edits (non-predictive JSON keys, comment-only C# changes) come back with suppressed=true plus the evidence. When member-level indexing is enabled, memberHoles reports absent companion METHODS/members of the members you actually changed. If after reviewing the evidence (explain_rule helps) you judge a hole to be a persistently false pattern, DO NOT just dismiss it silently: tell the user and mention that 'unwritten ignore <trigger> <hole> --for <n>' can mute it for a bounded number of trigger changes — only the human can make that call; there is deliberately no MCP tool for it.")]
     public string CheckHoles(
         [Description("Absolute path to the git repository (any path inside it works).")] string repoPath,
         [Description("Repo-relative paths of the files changed in this edit. Omit or leave empty to auto-detect every uncommitted change (or every change since baseRef).")] string[]? files = null,
@@ -65,8 +65,18 @@ public sealed class UnwrittenTools(IndexManager indexManager, GitTransactionSour
         var holes = RuleEngine.FindHoles(persisted.Index, entities, floor);
         var annotated = HoleSuppression.Annotate(persisted.Index, gitSource, repoPath, holes, staged: false, baseRevision);
 
+        var ignores = IgnoreStore.Load(repoPath);
+        annotated = IgnoreFilter.Apply(persisted.Index, annotated, ignores);
+
         var members = indexManager.GetMembersUpToDate(repoPath);
         var memberReport = MemberHoleFinder.Find(members, gitSource, repoPath, entities, staged: false, floor, baseRevision);
+
+        IReadOnlyList<HoleResult> memberHoles = memberReport?.Holes ?? [];
+        IReadOnlyList<AnnotatedHole> ignoredMemberHoles = [];
+        if (members is not null && memberHoles.Count > 0)
+        {
+            (memberHoles, ignoredMemberHoles) = IgnoreFilter.SplitMemberHoles(members.Index, memberHoles, ignores);
+        }
 
         int minSupport = persisted.Index.Config.MinSupport;
         var checkedFiles = entities.Select(e =>
@@ -87,19 +97,26 @@ public sealed class UnwrittenTools(IndexManager indexManager, GitTransactionSour
             notes.Add($"{thin} checked file(s) have fewer than {minSupport} historical changes — too little history for rules to exist.");
         }
 
+        object MemberDto(HoleResult h, string? suppressReason) => new
+        {
+            h.Hole,
+            holeLocation = members!.Index.GetEntityLocation(h.Hole),
+            h.Trigger,
+            h.Confidence,
+            h.CoChanges,
+            h.TotalChanges,
+            exampleCommits = h.ExampleTransactions.Select(e => new { sha = e.Id, subject = e.Label }),
+            suppressed = suppressReason is null ? (bool?)null : true,
+            suppressReason,
+        };
+
         return Serialize(new
         {
             holes = annotated.Select(ToHoleDto),
-            memberHoles = memberReport?.Holes.Select(h => new
-            {
-                h.Hole,
-                holeLocation = members!.Index.GetEntityLocation(h.Hole),
-                h.Trigger,
-                h.Confidence,
-                h.CoChanges,
-                h.TotalChanges,
-                exampleCommits = h.ExampleTransactions.Select(e => new { sha = e.Id, subject = e.Label }),
-            }),
+            memberHoles = memberReport is null
+                ? null
+                : memberHoles.Select(h => MemberDto(h, null))
+                    .Concat(ignoredMemberHoles.Select(a => MemberDto(a.Hole, a.Reason))),
             changedMembers = memberReport?.ChangedMembers,
             checkedFiles,
             minConfidence = floor,
@@ -181,7 +198,7 @@ public sealed class UnwrittenTools(IndexManager indexManager, GitTransactionSour
     }
 
     [McpServerTool(Name = "explain_rule")]
-    [Description("Full evidence for the co-change rule between two files: counts, confidence in both directions, historical commits where they changed together, and recent commits where fileA changed alone (the exceptions).")]
+    [Description("Full evidence for the co-change rule between two files: counts, confidence in both directions, historical commits where they changed together, and recent commits where fileA changed alone (the exceptions). Use this to judge whether a flagged hole is a legitimate exception. If the evidence convinces you the rule is persistently false (e.g. the historical reason for the coupling no longer exists), report that conclusion to the user and mention 'unwritten ignore <trigger> <hole> --for <n>' — muting is the user's decision, not yours.")]
     public string ExplainRule(
         [Description("Repo-relative path of the trigger file.")] string fileA,
         [Description("Repo-relative path of the expected companion file.")] string fileB,
@@ -266,6 +283,11 @@ public sealed class UnwrittenTools(IndexManager indexManager, GitTransactionSour
         exampleCommits = annotated.Hole.ExampleTransactions.Select(e => new { sha = e.Id, subject = e.Label }),
         suppressed = annotated.Suppression is null ? (bool?)null : annotated.Suppressed,
         suppressReason = annotated.Reason,
+        // The exact command to relay when the agent judges the rule false —
+        // recommend it to the user verbatim; only the user may run it.
+        ifFalsePattern = annotated.Suppressed
+            ? null
+            : $"recommend to the user (their decision): dotnet tool execute Unwritten --yes -- ignore {annotated.Hole.Trigger} {annotated.Hole.Hole} --for 30",
         changedFacets = annotated.Suppression?.ChangedFacets.Select(f => new
         {
             facet = f.Facet,
