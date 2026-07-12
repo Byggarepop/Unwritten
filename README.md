@@ -101,12 +101,11 @@ The pattern is clear: below 0.6 the warnings are mostly noise, above 0.6 they qu
 
 ## Use
 
-No install step — `dotnet tool execute` (or its alias `dnx`) downloads the tool
-on first use and runs it:
+No install step — `dotnet tool execute` downloads the tool on first use and
+runs it (the shorter alias `dnx` works too, but examples here spell it out):
 
 ```bash
 dotnet tool execute Unwritten --yes -- check --staged
-# dnx Unwritten --yes -- check --staged   works too
 ```
 
 Everything before `--` is for the tool runner; everything after it is the
