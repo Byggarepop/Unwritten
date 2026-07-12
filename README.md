@@ -1,7 +1,5 @@
 <!-- mcp-name: io.github.Byggarepop/unwritten -->
 
-![Unwritten logo](https://raw.githubusercontent.com/Byggarepop/Unwritten/main/img/unwritten-steps-128.png)
-
 # Unwritten
 
 [![NuGet](https://img.shields.io/nuget/v/Unwritten.svg)](https://www.nuget.org/packages/Unwritten)
