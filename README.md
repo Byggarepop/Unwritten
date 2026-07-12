@@ -260,6 +260,31 @@ repos:
 
 With [Husky](https://typicode.github.io/husky/): `echo "dotnet tool execute Unwritten --yes -- check --staged" > .husky/pre-commit`.
 
+### Muting a false rule — `unwritten ignore`
+
+Sometimes a high-confidence rule is simply wrong for your situation and keeps
+blocking commits. Content-aware suppression already absorbs cosmetic C# and
+JSON edits automatically, and `git commit --no-verify` bypasses a single
+commit — but for a *persistently* false pairing, mute it:
+
+```bash
+dotnet tool execute Unwritten --yes -- ignore docs/api.md src/openapi.json --for 30 --note "generated separately now"
+dotnet tool execute Unwritten --yes -- ignore --list
+dotnet tool execute Unwritten --yes -- ignore --remove docs/api.md src/openapi.json
+```
+
+Ignores are **bounded by design** — permanent mutes go stale and one day hide a
+real omission. An ignore expires after the trigger has changed `--for` more
+times (default 30): those are exactly the commits that either erode the false
+rule (each trigger-alone commit lowers its confidence, so it often dies
+naturally before the mute expires) or prove the coupling is real again. Muted
+holes still appear as `suppressed` with their remaining budget — never silently
+dropped — and `check --strict` overrides them. Ignores live in
+`.unwritten/ignores.json` (machine-managed; keep your hands in `config.json`).
+
+There is deliberately no MCP tool for creating ignores: muting a warning is a
+human judgment, not something a coding agent should do to its own findings.
+
 ### Configuration — `.unwritten/config.json`
 
 The first index build drops a fully commented template at

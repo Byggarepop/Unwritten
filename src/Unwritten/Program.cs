@@ -23,6 +23,10 @@ const string usage = """
                                         deterministically. Flags: --git
                                         (pre-commit), --claude-code (Stop hook),
                                         --repo <path>, --force.
+      unwritten ignore <trigger> <hole> Mute a false rule until the trigger has
+                                        changed N more times (--for <n>,
+                                        default 30). --list / --remove manage
+                                        existing ignores.
       unwritten --version               Print the tool version.
 
     Check options:
@@ -50,6 +54,8 @@ switch (args.FirstOrDefault())
         return RunCli(() => StatsCommand.Run(args[1..], indexManager, Console.Out, rebuild: true));
     case "install-hook":
         return RunCli(() => HookCommand.Install(args[1..], indexManager, gitSource, Console.Out));
+    case "ignore":
+        return RunCli(() => IgnoreCommand.Run(args[1..], indexManager, Console.Out));
     case "hook" when args.Length >= 2 && args[1] == "stop":
         // Fails open by design (exit 0 on any infrastructure problem): a broken
         // hook must never block the agent from finishing a turn.

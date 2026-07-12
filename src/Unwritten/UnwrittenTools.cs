@@ -65,8 +65,18 @@ public sealed class UnwrittenTools(IndexManager indexManager, GitTransactionSour
         var holes = RuleEngine.FindHoles(persisted.Index, entities, floor);
         var annotated = HoleSuppression.Annotate(persisted.Index, gitSource, repoPath, holes, staged: false, baseRevision);
 
+        var ignores = IgnoreStore.Load(repoPath);
+        annotated = IgnoreFilter.Apply(persisted.Index, annotated, ignores);
+
         var members = indexManager.GetMembersUpToDate(repoPath);
         var memberReport = MemberHoleFinder.Find(members, gitSource, repoPath, entities, staged: false, floor, baseRevision);
+
+        IReadOnlyList<HoleResult> memberHoles = memberReport?.Holes ?? [];
+        IReadOnlyList<AnnotatedHole> ignoredMemberHoles = [];
+        if (members is not null && memberHoles.Count > 0)
+        {
+            (memberHoles, ignoredMemberHoles) = IgnoreFilter.SplitMemberHoles(members.Index, memberHoles, ignores);
+        }
 
         int minSupport = persisted.Index.Config.MinSupport;
         var checkedFiles = entities.Select(e =>
@@ -87,19 +97,26 @@ public sealed class UnwrittenTools(IndexManager indexManager, GitTransactionSour
             notes.Add($"{thin} checked file(s) have fewer than {minSupport} historical changes — too little history for rules to exist.");
         }
 
+        object MemberDto(HoleResult h, string? suppressReason) => new
+        {
+            h.Hole,
+            holeLocation = members!.Index.GetEntityLocation(h.Hole),
+            h.Trigger,
+            h.Confidence,
+            h.CoChanges,
+            h.TotalChanges,
+            exampleCommits = h.ExampleTransactions.Select(e => new { sha = e.Id, subject = e.Label }),
+            suppressed = suppressReason is null ? (bool?)null : true,
+            suppressReason,
+        };
+
         return Serialize(new
         {
             holes = annotated.Select(ToHoleDto),
-            memberHoles = memberReport?.Holes.Select(h => new
-            {
-                h.Hole,
-                holeLocation = members!.Index.GetEntityLocation(h.Hole),
-                h.Trigger,
-                h.Confidence,
-                h.CoChanges,
-                h.TotalChanges,
-                exampleCommits = h.ExampleTransactions.Select(e => new { sha = e.Id, subject = e.Label }),
-            }),
+            memberHoles = memberReport is null
+                ? null
+                : memberHoles.Select(h => MemberDto(h, null))
+                    .Concat(ignoredMemberHoles.Select(a => MemberDto(a.Hole, a.Reason))),
             changedMembers = memberReport?.ChangedMembers,
             checkedFiles,
             minConfidence = floor,

@@ -113,17 +113,27 @@ public static class CheckCommand
         var holes = RuleEngine.FindHoles(persisted.Index, entities, minConfidence);
         var annotated = HoleSuppression.Annotate(persisted.Index, gitSource, repoPath, holes, staged, baseRevision);
 
+        var ignores = IgnoreStore.Load(repoPath);
+        annotated = IgnoreFilter.Apply(persisted.Index, annotated, ignores);
+
         var members = indexManager.GetMembersUpToDate(repoPath);
         var memberReport = MemberHoleFinder.Find(members, gitSource, repoPath, entities, staged, minConfidence, baseRevision);
 
         var active = annotated.Where(a => !a.Suppressed || strict).ToList();
         var suppressed = annotated.Where(a => a.Suppressed && !strict).ToList();
-        var memberHoles = memberReport?.Holes ?? [];
+
+        IReadOnlyList<HoleResult> memberHoles = memberReport?.Holes ?? [];
+        IReadOnlyList<AnnotatedHole> ignoredMemberHoles = [];
+        if (!strict && members is not null && memberHoles.Count > 0)
+        {
+            (memberHoles, ignoredMemberHoles) = IgnoreFilter.SplitMemberHoles(members.Index, memberHoles, ignores);
+        }
 
         if (active.Count == 0 && memberHoles.Count == 0)
         {
             output.WriteLine(Inv($"No holes at confidence >= {minConfidence:0.00} for {entities.Length} file(s)."));
             PrintSuppressed(output, suppressed);
+            PrintSuppressed(output, ignoredMemberHoles);
             return 0;
         }
 
@@ -166,6 +176,7 @@ public static class CheckCommand
         }
 
         PrintSuppressed(output, suppressed);
+        PrintSuppressed(output, ignoredMemberHoles);
 
         bool failing = active.Any(a => a.Hole.Confidence >= failAt) ||
             memberHoles.Any(h => h.Confidence >= failAt);
