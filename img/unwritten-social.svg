@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640">
+  <rect width="1280" height="640" fill="#1D2433"/>
+  <rect width="1280" height="640" fill="url(#g)"/>
+  <defs>
+    <radialGradient id="g" cx="0.25" cy="0.2" r="1.2">
+      <stop offset="0" stop-color="#2A3450" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#1D2433" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- The mark, scaled up -->
+  <g transform="translate(-26.8,12.8) scale(2.4)">
+    <circle cx="72" cy="78" r="15" fill="#F2ECDC"/>
+    <path d="M 108 78 L 196 78" stroke="#F2ECDC" stroke-width="18" stroke-linecap="round"/>
+    <circle cx="72" cy="128" r="15" fill="#F2ECDC"/>
+    <path d="M 108 128 L 172 128" stroke="#F2ECDC" stroke-width="18" stroke-linecap="round"/>
+    <circle cx="72" cy="178" r="12.5" fill="none" stroke="#E8B45A" stroke-width="5"
+            stroke-dasharray="4.340 8.75" stroke-dashoffset="2.170" stroke-linecap="round"/>
+    <path d="M 108 178 L 118.67 178" stroke="#E8B45A" stroke-width="18" stroke-linecap="round"/>
+    <path d="M 146.67 178 L 157.33 178" stroke="#E8B45A" stroke-width="18" stroke-linecap="round"/>
+    <path d="M 185.33 178 L 196 178" stroke="#E8B45A" stroke-width="18" stroke-linecap="round"/>
+  </g>
+
+  <!-- Name and tagline -->
+  <g font-family="DejaVu Sans">
+    <text x="600" y="300" font-size="108" font-weight="bold" fill="#F2ECDC">Unwritten</text>
+    <text x="604" y="376" font-size="38" fill="#8FA0C4">Your team's unwritten rules,</text>
+    <text x="604" y="430" font-size="38" fill="#E8B45A">written down.</text>
+  </g>
+</svg>

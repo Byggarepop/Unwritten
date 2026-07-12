@@ -4,6 +4,10 @@
 
 # Unwritten
 
+[![NuGet](https://img.shields.io/nuget/v/Unwritten.svg)](https://www.nuget.org/packages/Unwritten)
+[![Downloads](https://img.shields.io/nuget/dt/Unwritten.svg)](https://www.nuget.org/packages/Unwritten)
+[![License: MIT](https://img.shields.io/github/license/Byggarepop/Unwritten.svg)](LICENSE)
+
 **The free, agent-native slice of change coupling.** Unwritten learns from your git
 history which files are expected to change together, and flags statistically
 confident *absences*: "you changed `OrderService.cs` but not
