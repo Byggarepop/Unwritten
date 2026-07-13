@@ -28,7 +28,7 @@ public static class CheckCommand
           --strict                Treat content-suppressed holes as real holes.
         """;
 
-    public static int Run(string[] args, IndexManager indexManager, GitTransactionSource gitSource, TextWriter output)
+    public static int Run(string[] args, IndexManager indexManager, GitTransactionSource gitSource, TextWriter output, string logSource = "cli")
     {
         bool staged = false;
         bool strict = false;
@@ -129,6 +129,13 @@ public static class CheckCommand
             (memberHoles, ignoredMemberHoles) = IgnoreFilter.SplitMemberHoles(members.Index, memberHoles, ignores);
         }
 
+        var failingFileHoles = active.Where(a => a.Hole.Confidence >= failAt).Select(a => a.Hole).ToList();
+        var failingMemberHoles = memberHoles.Where(h => h.Confidence >= failAt).ToList();
+        bool failing = failingFileHoles.Count > 0 || failingMemberHoles.Count > 0;
+
+        LogFindings(repoPath, logSource, entities, minConfidence, failAt, active, memberHoles, members,
+            suppressed, ignoredMemberHoles, failing);
+
         if (active.Count == 0 && memberHoles.Count == 0)
         {
             output.WriteLine(Inv($"No holes at confidence >= {minConfidence:0.00} for {entities.Length} file(s)."));
@@ -178,9 +185,6 @@ public static class CheckCommand
         PrintSuppressed(output, suppressed);
         PrintSuppressed(output, ignoredMemberHoles);
 
-        var failingFileHoles = active.Where(a => a.Hole.Confidence >= failAt).Select(a => a.Hole).ToList();
-        var failingMemberHoles = memberHoles.Where(h => h.Confidence >= failAt).ToList();
-        bool failing = failingFileHoles.Count > 0 || failingMemberHoles.Count > 0;
         if (failing)
         {
             output.WriteLine(Inv($"FAIL: at least one hole at confidence >= {failAt:0.00}."));
@@ -254,6 +258,47 @@ public static class CheckCommand
             output.WriteLine(
                 $"suppressed: {annotated.Hole.Hole} (trigger {annotated.Hole.Trigger}; {detail})");
         }
+    }
+
+    /// <summary>
+    /// Records what this check reported to its consumer in .unwritten/findings.log
+    /// (same structured shape as the MCP tool logs, so the log reads uniformly).
+    /// </summary>
+    private static void LogFindings(
+        string repoPath,
+        string source,
+        IReadOnlyList<string> entities,
+        double minConfidence,
+        double failAt,
+        IReadOnlyList<AnnotatedHole> active,
+        IReadOnlyList<HoleResult> memberHoles,
+        PersistedIndex? members,
+        IReadOnlyList<AnnotatedHole> suppressed,
+        IReadOnlyList<AnnotatedHole> ignoredMemberHoles,
+        bool failing)
+    {
+        object HoleDto(HoleResult h, string? holeLocation = null) => new
+        {
+            h.Hole,
+            HoleLocation = holeLocation,
+            h.Trigger,
+            h.Confidence,
+            h.CoChanges,
+            h.TotalChanges,
+        };
+
+        FindingsLog.Append(repoPath, source, new
+        {
+            CheckedFiles = entities,
+            MinConfidence = minConfidence,
+            FailAt = failAt,
+            Holes = active.Select(a => HoleDto(a.Hole)).ToArray(),
+            MemberHoles = memberHoles.Select(h => HoleDto(h, members!.Index.GetEntityLocation(h.Hole))).ToArray(),
+            Suppressed = suppressed.Concat(ignoredMemberHoles)
+                .Select(a => new { a.Hole.Hole, a.Hole.Trigger, a.Reason })
+                .ToArray(),
+            Failing = failing,
+        });
     }
 
     private static string Inv(FormattableString message) => FormattableString.Invariant(message);

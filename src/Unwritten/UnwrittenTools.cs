@@ -110,19 +110,22 @@ public sealed class UnwrittenTools(IndexManager indexManager, GitTransactionSour
             suppressReason,
         };
 
-        return Serialize(new
+        var result = new
         {
-            holes = annotated.Select(ToHoleDto),
+            holes = annotated.Select(ToHoleDto).ToArray(),
             memberHoles = memberReport is null
                 ? null
                 : memberHoles.Select(h => MemberDto(h, null))
-                    .Concat(ignoredMemberHoles.Select(a => MemberDto(a.Hole, a.Reason))),
+                    .Concat(ignoredMemberHoles.Select(a => MemberDto(a.Hole, a.Reason)))
+                    .ToArray(),
             changedMembers = memberReport?.ChangedMembers,
             checkedFiles,
             minConfidence = floor,
             baseRef,
             notes = notes.Count > 0 ? notes : null,
-        });
+        };
+        FindingsLog.Append(repoPath, "mcp", result);
+        return Serialize(result);
     }
 
     [McpServerTool(Name = "reindex")]

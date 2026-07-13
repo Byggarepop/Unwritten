@@ -12,6 +12,9 @@ public static class IndexStore
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        // Deliberately compact: the index is machine state with no human reader,
+        // it is deserialized fresh on every CLI/hook invocation, and on large
+        // repos it reaches tens of MB — indentation would add ~60% to that cost.
         WriteIndented = false,
     };
 

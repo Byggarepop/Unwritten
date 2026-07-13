@@ -93,7 +93,7 @@ public static class HookCommand
             string repoPath = indexManager.ResolveRepoRoot(
                 string.IsNullOrWhiteSpace(cwd) ? Directory.GetCurrentDirectory() : cwd);
             using var buffer = new StringWriter();
-            int exitCode = CheckCommand.Run(["--repo", repoPath], indexManager, gitSource, buffer);
+            int exitCode = CheckCommand.Run(["--repo", repoPath], indexManager, gitSource, buffer, logSource: "stop-hook");
             if (exitCode != 1)
             {
                 return 0;
