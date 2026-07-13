@@ -146,7 +146,7 @@ public static class CheckCommand
                 var hole = annotatedHole.Hole;
                 output.WriteLine($"  {hole.Hole}");
                 output.WriteLine($"    expected because you changed {hole.Trigger}");
-                output.WriteLine(Inv($"    confidence {hole.Confidence:0.00} ({hole.CoChanges} co-changes in {hole.TotalChanges} changes)"));
+                output.WriteLine(Inv($"    confidence {hole.Confidence:0.000} ({hole.CoChanges} co-changes in {hole.TotalChanges} changes)"));
                 foreach (var example in hole.ExampleTransactions)
                 {
                     output.WriteLine($"    e.g. {example.Id} {example.Label}");
@@ -165,7 +165,7 @@ public static class CheckCommand
                 string location = members!.Index.GetEntityLocation(hole.Hole) is { } path ? $" ({path})" : "";
                 output.WriteLine($"  {hole.Hole}{location}");
                 output.WriteLine($"    expected because you changed {hole.Trigger}");
-                output.WriteLine(Inv($"    confidence {hole.Confidence:0.00} ({hole.CoChanges} co-changes in {hole.TotalChanges} changes)"));
+                output.WriteLine(Inv($"    confidence {hole.Confidence:0.000} ({hole.CoChanges} co-changes in {hole.TotalChanges} changes)"));
                 foreach (var example in hole.ExampleTransactions)
                 {
                     output.WriteLine($"    e.g. {example.Id} {example.Label}");
@@ -249,7 +249,7 @@ public static class CheckCommand
         {
             var facets = annotated.Suppression!.ChangedFacets;
             string detail = facets.Count > 0
-                ? "changed keys non-predictive: " + string.Join(", ", facets.Select(f => Inv($"{f.Facet} {f.Confidence:0.00}")))
+                ? "changed keys non-predictive: " + string.Join(", ", facets.Select(f => Inv($"{f.Facet} {f.Confidence:0.000}")))
                 : annotated.Reason ?? "cosmetic edit";
             output.WriteLine(
                 $"suppressed: {annotated.Hole.Hole} (trigger {annotated.Hole.Trigger}; {detail})");

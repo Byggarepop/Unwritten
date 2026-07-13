@@ -1,3 +1,4 @@
+
 <!-- mcp-name: io.github.Byggarepop/unwritten -->
 
 # Unwritten
@@ -17,32 +18,12 @@ One `dotnet tool execute`, an index in `.unwritten/`, no server, no subscription
 no tokens.
 
 **Works on any language.** File-level rules only need git history, so hole
-detection works the same on Python, TypeScript, Go, or mixed repos. C# repos
+detection ("file A usually change with file B") works the same on Python, TypeScript, Go, or mixed repos. C# repos
 additionally get method-level rules ("you changed `CalculateFreight` but not
 its test") and cosmetic-edit filtering; JSON files get key-level noise
 filtering. Running the tool requires the [.NET SDK](https://dotnet.microsoft.com/download)
 (10+) — already present on any .NET dev machine — but the repos it analyzes
 can be anything.
-
-## Quick start
-
-From your repo's root:
-
-```bash
-# 1. Warm up the index (optional — every command builds it on first use and
-#    keeps it current by itself; this just makes the first query fast)
-dotnet tool execute Unwritten --yes -- reindex
-
-# 2. Register as an MCP server (Claude Code)
-claude mcp add unwritten -- dotnet tool execute Unwritten --yes -- mcp
-
-# 3. (Recommended) Make the check deterministic — a git pre-commit hook and a
-#    Claude Code Stop hook that feeds failing holes back to the agent:
-dotnet tool execute Unwritten --yes -- install-hook --git --claude-code
-```
-
-That's it — your agent can now call `check_holes` after editing, and the hooks
-catch the cases where it forgets to.
 
 ## This is not a new idea — and that's the point
 
@@ -74,12 +55,14 @@ Mining Software Repositories community:
 
 **Honest about certainty.** If two files changed together 3 times out of 4, that could easily be coincidence. If it happened 90 times out of 100, it's a real pattern. Unwritten uses a statistical formula (the Wilson lower bound) that scores evidence based on both how often the pattern held *and* how much evidence there is:
 
-- 3 out of 4 → raw ratio 75%, but confidence only **0.30** — too little evidence to trust
-- 15 out of 17 → raw ratio 88%, confidence **0.66** — starting to look real
-- 90 out of 100 → raw ratio 90%, confidence **0.82** — a real pattern
-- 15 out of 15 → a perfect record, confidence **0.80** — a small project *can* earn high confidence, but only with a spotless history
+- 3 out of 4 → raw ratio 75%, but confidence only **0.301** — too little evidence to trust
+- 15 out of 17 → raw ratio 88%, confidence **0.657** — starting to look real
+- 90 out of 100 → raw ratio 90%, confidence **0.826** — a real pattern
+- 15 out of 15 → a perfect record, confidence **0.796** — a small project *can* earn high confidence, but perfection on 15 samples is still only 15 samples (it lands just under the 0.8 bar)
 
 So more evidence is always worth more: 3 out of 4 and 90 out of 100 get very different scores, even though the percentages look similar. And when two patterns do end up with the same score, they've earned it — a small project needs a near-perfect record to reach what a large one reaches with a few exceptions.
+
+Read more about it in the [How it works](##how-it-works)
 
 ## Why these thresholds (tested on real data)
 
@@ -98,6 +81,25 @@ The pattern is clear: below 0.6 the warnings are mostly noise, above 0.6 they qu
 - Commits touching more than 30 files are ignored during learning — big refactors and merges would teach false patterns.
 - A file must have changed at least 10 times before rules about it are trusted.
 - **Every warning comes with proof** — how many times the pattern held, and links to real example commits. A warning about something *missing* can't point at a file, so it has to bring its own evidence.
+
+## Quick start
+
+From your repo's root:
+
+ 1. Warm up the index (optional — every command builds it on first use and keeps it current by itself; this just makes the first query fast).
+``` bash
+dotnet tool execute Unwritten --yes -- reindex
+```
+ 2. Register as an MCP server.
+ [Register MCP](###as-an-mcp-server)
+
+ 3. (Recommended if using Claude Code) Make the check deterministic — a git pre-commit hook and a Claude Code Stop hook that feeds failing holes back to the agent before a commit actually is made:
+ ```bash
+dotnet tool execute Unwritten --yes -- install-hook --git --claude-code
+```
+
+That's it — your agent can now call `check_holes` after editing, and the hooks
+catch the cases where it forgets to.
 
 ## Use
 
