@@ -216,14 +216,14 @@ git history rewrite.
 
 #### Actual examples from a demo
 Checking stats of the index show 1 pair that goes above the 0.7 rule
-![Checking stats of index](img/demo/check-index.png)
+![Checking stats of index](https://raw.githubusercontent.com/Byggarepop/Unwritten/main/img/demo/check-index.png)
 
 Checking stats after a change has been made to one of the files.
 The tool will inform that there is one file with a confidence score above 0.7 that is not changed together with its pair. And it will show you 3 ways you can take to resolve the issue.
-![Checking stats for a hole after change](img/demo/check-stats.png)
+![Checking stats for a hole after change](https://raw.githubusercontent.com/Byggarepop/Unwritten/main/img/demo/check-stats.png)
 
 Installing the pre-commit hook gives same output
-![Using pre-commit hook to check for holes](img/demo/use-pre-commit-hook.png)
+![Using pre-commit hook to check for holes](https://raw.githubusercontent.com/Byggarepop/Unwritten/main/img/demo/use-pre-commit-hook.png)
 
 ### As hooks — deterministic checks
 
