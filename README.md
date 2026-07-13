@@ -62,7 +62,7 @@ Mining Software Repositories community:
 
 So more evidence is always worth more: 3 out of 4 and 90 out of 100 get very different scores, even though the percentages look similar. And when two patterns do end up with the same score, they've earned it — a small project needs a near-perfect record to reach what a large one reaches with a few exceptions.
 
-Read more about it in the [How it works](##how-it-works)
+Read more about it in [How it works](#how-it-works).
 
 ## Why these thresholds (tested on real data)
 
@@ -90,8 +90,7 @@ From your repo's root:
 ``` bash
 dotnet tool execute Unwritten --yes -- reindex
 ```
- 2. Register as an MCP server.
- [Register MCP](###as-an-mcp-server)
+ 2. Register as an MCP server — see [As an MCP server](#as-an-mcp-server).
 
  3. (Recommended if using Claude Code) Make the check deterministic — a git pre-commit hook and a Claude Code Stop hook that feeds failing holes back to the agent before a commit actually is made:
  ```bash
