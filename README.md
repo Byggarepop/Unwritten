@@ -34,8 +34,7 @@ Mining Software Repositories community:
 - **ROSE (Zimmermann, Weißgerber, Diehl & Zeller, 2004–2005)** mined association
   rules from version history in an Eclipse plugin — "programmers who changed
   these functions also changed…" — explicitly to prevent errors from incomplete
-  changes, including warnings about missing items. Unwritten is essentially ROSE
-  reborn.
+  changes, including warnings about missing items.
 - **CodeScene** (commercial) is the closest neighbor. Its delta analysis can
   also warn when an expected change pattern is broken — a file that usually
   changes with another is missing from a pull request. The difference is
