@@ -43,6 +43,22 @@ dotnet tool execute Unwritten --yes -- install-hook --git --claude-code
 That's it — your agent can now call `check_holes` after editing, and the hooks
 catch the cases where it forgets to.
 
+## See it in action
+
+Checking stats of the index shows 1 pair that goes above the 0.7 rule:
+
+![Checking stats of index](https://raw.githubusercontent.com/Byggarepop/Unwritten/main/img/demo/check-index.png)
+
+Checking stats after a change has been made to one of the files. The tool
+informs that there is one file with a confidence score above 0.7 that is not
+changed together with its pair, and shows 3 ways to resolve the issue:
+
+![Checking stats for a hole after change](https://raw.githubusercontent.com/Byggarepop/Unwritten/main/img/demo/check-stats.png)
+
+Installing the pre-commit hook gives the same output:
+
+![Using pre-commit hook to check for holes](https://raw.githubusercontent.com/Byggarepop/Unwritten/main/img/demo/use-pre-commit-hook.png)
+
 ## Documentation
 
 Everything else lives in **[docs/README.md](https://github.com/Byggarepop/Unwritten/blob/main/docs/README.md)**:
