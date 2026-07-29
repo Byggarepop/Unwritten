@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.4] - 2026-07-29
+
+### Changed
+
+- README: detailed documentation moved from the repo root to `docs/README.md`;
+  root-README links to it (and to LICENSE) are now absolute GitHub URLs so they
+  resolve on the nuget.org package page.
+- README: the three CLI demo screenshots (stats, check with the decision guide,
+  pre-commit hook) now appear in a "See it in action" section on the root
+  README itself, so they show on GitHub and nuget.org without a click-through.
+
 ## [0.4.3] - 2026-07-13
 
 ### Changed
