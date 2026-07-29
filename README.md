@@ -45,15 +45,15 @@ catch the cases where it forgets to.
 
 ## Documentation
 
-Everything else lives in **[docs/README.md](docs/README.md)**:
+Everything else lives in **[docs/README.md](https://github.com/Byggarepop/Unwritten/blob/main/docs/README.md)**:
 
-- [Background & the research behind it](docs/README.md#this-is-not-a-new-idea--and-thats-the-point)
-- [Why these thresholds (tested on real data)](docs/README.md#why-these-thresholds-tested-on-real-data)
-- [Use: MCP server, CLI, hooks, muting false rules](docs/README.md#use)
-- [Configuration reference](docs/README.md#configuration--unwrittenconfigjson)
-- [How it works](docs/README.md#how-it-works)
-- [What it does NOT do (yet)](docs/README.md#what-it-does-not-do-yet)
+- [Background & the research behind it](https://github.com/Byggarepop/Unwritten/blob/main/docs/README.md#this-is-not-a-new-idea--and-thats-the-point)
+- [Why these thresholds (tested on real data)](https://github.com/Byggarepop/Unwritten/blob/main/docs/README.md#why-these-thresholds-tested-on-real-data)
+- [Use: MCP server, CLI, hooks, muting false rules](https://github.com/Byggarepop/Unwritten/blob/main/docs/README.md#use)
+- [Configuration reference](https://github.com/Byggarepop/Unwritten/blob/main/docs/README.md#configuration--unwrittenconfigjson)
+- [How it works](https://github.com/Byggarepop/Unwritten/blob/main/docs/README.md#how-it-works)
+- [What it does NOT do (yet)](https://github.com/Byggarepop/Unwritten/blob/main/docs/README.md#what-it-does-not-do-yet)
 
 ## License
 
-[MIT](LICENSE)
+[MIT](https://github.com/Byggarepop/Unwritten/blob/main/LICENSE)
