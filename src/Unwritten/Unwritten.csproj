@@ -25,7 +25,7 @@
          always treats a fresh pack as the newest; real releases are tag-driven:
          the release workflow packs with -p:Version=<tag>. -->
     <Version>9.9.9-dev</Version>
-    <Description>Git-history-based hole detector: flags files that are expected to change together with your edit but are absent. MCP server + pre-commit CLI.</Description>
+    <Description>Catches the files you — or your AI agent — forgot to change: learns from git history which files change together and warns when one is missing from your edit. MCP server + pre-commit CLI.</Description>
     <PackageTags>mcp;model-context-protocol;git;change-coupling;code-review;pre-commit;roslyn;ai;agents</PackageTags>
     <Authors>Byggarepop</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
