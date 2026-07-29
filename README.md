@@ -4,12 +4,26 @@
 
 [![NuGet](https://img.shields.io/nuget/v/Unwritten.svg)](https://www.nuget.org/packages/Unwritten) [![Downloads](https://img.shields.io/nuget/dt/Unwritten.svg)](https://www.nuget.org/packages/Unwritten) [![License: MIT](https://img.shields.io/github/license/Byggarepop/Unwritten.svg)](https://github.com/Byggarepop/Unwritten/blob/main/LICENSE)
 
-**The free, agent-native slice of change coupling.** Unwritten learns from your git
-history which files are expected to change together, and flags statistically
-confident *absences*: "you changed `OrderService.cs` but not `OrderServiceTests.cs`, and they co-change 94% of the time."
+**Catch the files you — or your AI agent — forgot to change.** Unwritten learns
+from your git history which files usually change together and warns when one is
+missing from your edit: "you changed `OrderService.cs` but not
+`OrderServiceTests.cs`, and they change together 94% of the time." It calls
+these missing companions *holes*, and every warning comes with its confidence
+score and real example commits as proof.
+
+```text
+1 possible hole(s):
+
+  src/Orders/OrderServiceTests.cs
+    expected because you changed src/Orders/OrderService.cs
+    confidence 0.826 (90 co-changes in 100 changes)
+    e.g. 3f2a1c9 Add surcharge handling to freight calculation
+
+FAIL: at least one hole at confidence >= 0.70.
+```
 
 It runs as an **MCP server** so AI coding agents (Claude Code, Copilot) can check
-their own edits for holes mid-session, and as a **CLI** for pre-commit hooks.
+their own edits mid-session, and as a **CLI** for pre-commit hooks.
 One `dotnet tool execute`, an index in `.unwritten/`, no server, no subscription,
 no tokens.
 
@@ -47,19 +61,21 @@ catch the cases where it forgets to.
 
 ## See it in action
 
-Checking stats of the index shows 1 pair that goes above the 0.7 rule:
+`stats` shows what the tool has learned — here, one file pair coupled strongly
+enough (confidence ≥ 0.7) to block a commit if one side is missing:
 
-![Checking stats of index](https://raw.githubusercontent.com/Byggarepop/Unwritten/main/img/demo/check-index.png)
+![Index stats showing one high-confidence file pair](https://raw.githubusercontent.com/Byggarepop/Unwritten/main/img/demo/check-index.png)
 
-Checking stats after a change has been made to one of the files. The tool
-informs that there is one file with a confidence score above 0.7 that is not
-changed together with its pair, and shows 3 ways to resolve the issue:
+After editing one file of that pair, `check` warns that its companion is
+missing and spells out the three ways to resolve it — update the companion,
+commit anyway, or mute the rule:
 
-![Checking stats for a hole after change](https://raw.githubusercontent.com/Byggarepop/Unwritten/main/img/demo/check-stats.png)
+![check reporting a missing companion file with resolution options](https://raw.githubusercontent.com/Byggarepop/Unwritten/main/img/demo/check-stats.png)
 
-Installing the pre-commit hook gives the same output:
+With the pre-commit hook installed, the same check runs automatically on every
+commit and blocks it while the companion is still missing:
 
-![Using pre-commit hook to check for holes](https://raw.githubusercontent.com/Byggarepop/Unwritten/main/img/demo/use-pre-commit-hook.png)
+![Pre-commit hook blocking a commit on a missing companion file](https://raw.githubusercontent.com/Byggarepop/Unwritten/main/img/demo/use-pre-commit-hook.png)
 
 ## Documentation
 

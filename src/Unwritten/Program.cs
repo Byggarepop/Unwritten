@@ -11,7 +11,7 @@ var gitSource = new GitTransactionSource(runner);
 var indexManager = new IndexManager(gitSource);
 
 const string usage = """
-    Unwritten — git-history-based hole detector.
+    Unwritten — catches the files you forgot to change, learned from git history.
 
     Usage:
       unwritten mcp                     Run as MCP server over stdio.

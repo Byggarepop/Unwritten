@@ -2,6 +2,9 @@
 
 > Looking for the short version? See the [repo front page](../README.md).
 
+Unwritten warns when your edit is missing a file (or C# method) that history
+says usually changes along with it. It calls these missing companions *holes*.
+
 ## This is not a new idea — and that's the point
 
 Unwritten modernizes a 20-year-old research lineage for the agent era. The field is
@@ -171,15 +174,21 @@ git history rewrite.
 
 #### Actual examples from a demo
 
-Checking stats of the index show 1 pair that goes above the 0.7 rule
-![Checking stats of index](../img/demo/check-index.png)
+`stats` shows what the tool has learned — here, one file pair coupled strongly
+enough (confidence ≥ 0.7) to block a commit if one side is missing:
 
-Checking stats after a change has been made to one of the files.
-The tool will inform that there is one file with a confidence score above 0.7 that is not changed together with its pair. And it will show you 3 ways you can take to resolve the issue.
-![Checking stats for a hole after change](../img/demo/check-stats.png)
+![Index stats showing one high-confidence file pair](../img/demo/check-index.png)
 
-Installing the pre-commit hook gives same output
-![Using pre-commit hook to check for holes](../img/demo/use-pre-commit-hook.png)
+After editing one file of that pair, `check` warns that its companion is
+missing and spells out the three ways to resolve it — update the companion,
+bypass once, or mute the rule:
+
+![check reporting a missing companion file with resolution options](../img/demo/check-stats.png)
+
+With the pre-commit hook installed, the same check runs automatically on every
+commit and blocks it while the companion is still missing:
+
+![Pre-commit hook blocking a commit on a missing companion file](../img/demo/use-pre-commit-hook.png)
 
 ### As hooks — deterministic checks
 
