@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.5] - 2026-07-29
+
+### Fixed
+
+- README: restored the MCP Registry ownership marker
+  (`mcp-name: io.github.Byggarepop/unwritten`) that was lost in the 0.4.4
+  README restructure — without it the registry rejects the server listing,
+  so 0.4.4's registry publish failed.
+
 ## [0.4.4] - 2026-07-29
 
 ### Changed
