@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.6] - 2026-07-29
+
+### Changed
+
+- Docs-only release: all user-facing text rewritten benefit-first — lead with
+  the problem solved ("catch the files you — or your AI agent — forgot to
+  change") instead of the mechanism (change coupling, repository mining).
+- README: new opening, "hole" defined on first use, a plain-text sample of
+  `check` output, and demo captions that describe what each screenshot shows.
+  The change-coupling/research framing stays in `docs/README.md`.
+- NuGet package description, CLI `--help` header, and MCP registry description
+  (`.mcp/server.json`) rewritten to match.
+
 ## [0.4.5] - 2026-07-29
 
 ### Fixed
