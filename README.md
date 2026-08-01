@@ -66,8 +66,9 @@ https://github.com/user-attachments/assets/REPLACE-ME-BY-DRAGGING-THE-VIDEO-INTO
 <!-- The bare URL above renders as an inline video player on GitHub and
      degrades to a plain clickable link on nuget.org (which cannot embed
      video). To set or refresh it: edit README.md on github.com, drag
-     videos/Unwritten__Long_16x9.mp4 into the editor at this spot, delete
-     the placeholder URL, and commit. -->
+     videos/Unwritten__Long_16x9_subbed.mp4 (burned-in captions — GitHub's
+     player has no CC support) into the editor at this spot, delete the
+     placeholder URL, and commit. -->
 
 ## See it in action
 
