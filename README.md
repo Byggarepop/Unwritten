@@ -59,9 +59,9 @@ dotnet tool execute Unwritten --yes -- install-hook --git --claude-code
 That's it — your agent can now call `check_holes` after editing, and the hooks
 catch the cases where it forgets to.
 
-## See it in 60 seconds
+## Explanatory video
 
-https://github.com/user-attachments/assets/REPLACE-ME-BY-DRAGGING-THE-VIDEO-INTO-THE-WEB-EDITOR
+https://github.com/user-attachments/assets/4ae7a22d-c611-458f-8c48-08f87eca1d29
 
 <!-- The bare URL above renders as an inline video player on GitHub and
      degrades to a plain clickable link on nuget.org (which cannot embed
