@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Actionable MCP tool-call errors: every tools/call is validated against the
+  tool's input schema before SDK argument binding, so a call missing `repoPath`
+  (or with unknown or wrongly-typed parameters) returns an error naming the
+  exact problem and the expected schema — e.g. `Missing required parameter
+  'repoPath'. Expected shape: {repoPath: string, files?: array, minConfidence?:
+  number, baseRef?: string}.` — instead of the SDK's generic "An error occurred
+  invoking 'check_holes'". Predictable parameter-name synonyms (`repo_path`,
+  `repo`, `repository`, `path` for `repoPath`; snake_case forms of the other
+  parameters) are accepted as aliases, with the rewrite logged and a note
+  appended to the result so the calling model learns the canonical name.
+
 ## [0.4.6] - 2026-07-29
 
 ### Changed

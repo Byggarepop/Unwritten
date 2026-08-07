@@ -103,7 +103,11 @@ async Task RunMcpServerAsync(string[] mcpArgs)
     builder.Services
         .AddMcpServer()
         .WithStdioServerTransport()
-        .WithTools<UnwrittenTools>();
+        .WithTools<UnwrittenTools>()
+        // Validate every tools/call before the SDK binds it: a call missing repoPath (or with
+        // misnamed/wrongly-typed parameters) gets an error naming the exact problem and the
+        // expected schema instead of the SDK's generic binding failure.
+        .WithRequestFilters(filters => filters.AddCallToolFilter(ToolCallValidation.Attach));
 
     await builder.Build().RunAsync();
 }
